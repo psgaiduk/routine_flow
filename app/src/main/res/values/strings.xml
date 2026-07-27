@@ -6,4 +6,12 @@
     <string name="chains_subtitle">Цепочки и расписания</string>
     <string name="new_chain">Новая цепочка</string>
     <string name="stats_placeholder">Статистика будет доступна в следующих версиях</string>
+    <string name="run_no_chains">На сегодня цепочек нет</string>
+    <string name="run_subtitle">Запускайте цепочку — действия выполнятся последовательно</string>
+    <string name="run_step">%1$s\nШаг %2$d из %3$d: %4$s</string>
+    <string name="run_progress">%1$s\nВыполнено: %2$d из %3$d</string>
+    <string name="run_done">✓ Готово</string>
+    <string name="run_start">Запустить</string>
+    <string name="run_chain_meta">Длительность %1$s — Шагов: %2$d</string>
+    <string name="run_time_range">%1$s — %2$s</string>
 </resources>

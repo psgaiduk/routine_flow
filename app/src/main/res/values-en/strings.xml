@@ -6,4 +6,12 @@
     <string name="chains_subtitle">Chains and schedules</string>
     <string name="new_chain">New chain</string>
     <string name="stats_placeholder">Statistics will be available in future versions</string>
+    <string name="run_no_chains">No chains for today</string>
+    <string name="run_subtitle">Start a chain — actions will run one after another</string>
+    <string name="run_step">%1$s\nStep %2$d of %3$d: %4$s</string>
+    <string name="run_progress">%1$s\nCompleted: %2$d of %3$d</string>
+    <string name="run_done">✓ Done</string>
+    <string name="run_start">Start</string>
+    <string name="run_chain_meta">Duration %1$s — Steps: %2$d</string>
+    <string name="run_time_range">%1$s — %2$s</string>
 </resources>

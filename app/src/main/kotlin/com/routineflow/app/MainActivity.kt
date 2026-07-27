@@ -33,6 +33,7 @@ class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
     private var currentChainId: Long? = null
     private var currentTab = Tab.RUN
+    private var executionChainId: Long? = null
     private val dateKey get() = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
     private val navy = 0xff172554.toInt()
     private val accent = 0xff4f46e5.toInt()
@@ -50,6 +51,9 @@ class MainActivity : ComponentActivity() {
     private fun render(state: AppState) {
         val chain = currentChainId?.let { id -> state.chains.firstOrNull { it.id == id } }
         if (currentChainId != null && chain == null) currentChainId = null
+        val executionChain = executionChainId?.let { id -> state.chains.firstOrNull { it.id == id } }
+        if (executionChainId != null && executionChain == null) executionChainId = null
+        if (executionChain != null) { showChainExecution(state, executionChain); return }
         when (currentTab) {
             Tab.RUN -> showToday(state)
             Tab.CHAINS -> if (chain != null) showChain(state, chain) else showChains(state)
@@ -74,6 +78,19 @@ class MainActivity : ComponentActivity() {
         setOnClickListener { onClick() }
     }
 
+    private fun secondaryButton(text: String, onClick: () -> Unit) = MaterialButton(this).apply {
+        this.text = text; isAllCaps = false; cornerRadius = 18; setTextSize(20f); setTextColor(0xff334155.toInt())
+        backgroundTintList = ColorStateList.valueOf(0xffe2e8f0.toInt()); insetTop = 6; insetBottom = 6
+        setOnClickListener { onClick() }
+    }
+
+    private fun bottomActionButton(text: String, primary: Boolean, textSizeSp: Float = 14f, onClick: () -> Unit) = MaterialButton(this).apply {
+        this.text = text; isAllCaps = false; cornerRadius = 8; setTextSize(textSizeSp); gravity = Gravity.CENTER; insetTop = 0; insetBottom = 0; minHeight = 144; elevation = 0f; stateListAnimator = null
+        backgroundTintList = ColorStateList.valueOf(if (primary) accent else 0xffe2e8f0.toInt())
+        setTextColor(if (primary) 0xffffffff.toInt() else 0xff334155.toInt())
+        setOnClickListener { onClick() }
+    }
+
     private fun card(content: View) = MaterialCardView(this).apply {
         radius = 22f; cardElevation = 0f; setCardBackgroundColor(0xffffffff.toInt()); setContentPadding(16, 8, 16, 8); addView(content)
     }
@@ -81,28 +98,46 @@ class MainActivity : ComponentActivity() {
     private fun showToday(state: AppState) {
         val root = base("Сегодня")
         val chainsToday = state.chains.filter { chain -> chain.actions.any { viewModel.isDue(it) } }
-        root.addView(TextView(this).apply { text = if (chainsToday.isEmpty()) "На сегодня цепочек нет" else "Запускайте цепочку — действия выполнятся последовательно"; textSize = 15f; setPadding(0, 0, 0, 12) })
+        root.addView(TextView(this).apply { text = if (chainsToday.isEmpty()) getString(R.string.run_no_chains) else getString(R.string.run_subtitle); textSize = 15f; setPadding(0, 0, 0, 12) })
         chainsToday.forEach { chain ->
             val dueActions = chain.actions.filter { viewModel.isDue(it) }
-            val row = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
-            val running = state.running?.takeIf { it.chainId == chain.id }
-            val currentAction = running?.let { current -> chain.actions.firstOrNull { it.id == current.actionId } }
-            val completed = dueActions.count { it.doneOn == dateKey }
-            val label = TextView(this).apply {
-                text = if (currentAction != null) "${chain.name}\nШаг ${completed + 1} из ${dueActions.size}: ${currentAction.title}" else "${chain.name}\n$completed из ${dueActions.size} действий выполнено"
-                textSize = 16f; setPadding(0, 8, 8, 8)
-            }
-            row.addView(label, LinearLayout.LayoutParams(0, -2, 1f))
-            if (running != null) {
-                row.addView(button(formatDuration(running.remainingSeconds)) { viewModel.stopAction() })
-            } else if (completed == dueActions.size) {
-                row.addView(TextView(this).apply { text = "✓ Готово"; textSize = 14f })
-            } else {
-                row.addView(button("Запустить") { viewModel.startChain(chain.id) })
-            }
-            root.addView(card(row))
+            val row = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(4, 12, 4, 12) }
+            row.addView(TextView(this).apply { text = getString(R.string.run_chain_meta, formatDuration(dueActions.sumOf { it.durationSeconds }.toLong()), dueActions.size); textSize = 13f; setTextColor(0xff64748b.toInt()) })
+            row.addView(TextView(this).apply { text = chain.name; textSize = 20f; setTypeface(typeface, android.graphics.Typeface.BOLD); setTextColor(navy); setPadding(0, 4, 0, 0) })
+            root.addView(card(row).apply { radius = 22f; strokeWidth = 2; strokeColor = 0xffcbd5e1.toInt(); isClickable = true; setOnClickListener { executionChainId = chain.id; render(state) } })
         }
         addBottomNav(root, Tab.RUN)
+        setContentView(root)
+    }
+
+    private fun showChainExecution(state: AppState, chain: Chain) {
+        val root = base(chain.name)
+        val actions = chain.actions.filter { viewModel.isDue(it) }
+        val totalSeconds = actions.sumOf { it.durationSeconds }.toLong()
+        val now = java.util.Calendar.getInstance()
+        val end = now.clone() as java.util.Calendar
+        end.timeInMillis += totalSeconds * 1000L
+        val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+        root.addView(TextView(this).apply { text = getString(R.string.run_time_range, timeFormat.format(now.time), timeFormat.format(end.time)); textSize = 15f; setTextColor(0xff64748b.toInt()); setPadding(0, 0, 0, 20) })
+        actions.forEachIndexed { index, action ->
+            val completed = action.doneOn == dateKey
+            val isCurrent = state.running?.chainId == chain.id && state.running?.actionId == action.id
+            val row = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
+            row.addView(TextView(this).apply { text = "${index + 1}. ${action.title}\n${formatDuration(action.durationSeconds.toLong())}"; textSize = 17f; setPadding(8, 12, 8, 12) }, LinearLayout.LayoutParams(0, -2, 1f))
+            row.addView(TextView(this).apply { text = when { isCurrent -> formatDuration(state.running!!.remainingSeconds); completed -> "✓"; else -> "○" }; textSize = 18f; setTextColor(if (completed) accent else 0xff64748b.toInt()) })
+            root.addView(card(row))
+        }
+        val running = state.running?.takeIf { it.chainId == chain.id }
+        val bottom = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL; setPadding(0, 0, 0, 0); background = android.graphics.drawable.GradientDrawable().apply { setColor(0xffe2e8f0.toInt()) } }
+        val close = TextView(this).apply {
+            text = "✕"; textSize = 14f; gravity = Gravity.CENTER; setTextColor(0xff334155.toInt()); isClickable = true
+            background = android.graphics.drawable.GradientDrawable().apply { cornerRadius = 8f; setColor(0xffe2e8f0.toInt()) }
+            setOnClickListener { executionChainId = null; render(state) }
+        }
+        bottom.addView(close, LinearLayout.LayoutParams(72, 150))
+        val startLabel = if (running != null) formatDuration(running.remainingSeconds) else getString(R.string.run_start)
+        bottom.addView(bottomActionButton(startLabel, true) { if (running == null && actions.any { it.doneOn != dateKey }) viewModel.startChain(chain.id) }, LinearLayout.LayoutParams(0, 150, 1f))
+        root.addView(Space(this), LinearLayout.LayoutParams(1, 0, 1f)); root.addView(bottom, LinearLayout.LayoutParams(-1, 158))
         setContentView(root)
     }
 
