@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Routine Flow</string>
+    <string name="tab_run">Run</string>
+    <string name="tab_chains">Chains</string>
+    <string name="tab_stats">Statistics</string>
+    <string name="chains_subtitle">Chains and schedules</string>
+    <string name="new_chain">New chain</string>
+    <string name="stats_placeholder">Statistics will be available in future versions</string>
+</resources>

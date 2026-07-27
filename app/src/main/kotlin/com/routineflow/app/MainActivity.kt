@@ -29,9 +29,10 @@ import java.util.Locale
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    private enum class Tab { RUN, CHAINS, STATS }
     private val viewModel: MainViewModel by viewModels()
     private var currentChainId: Long? = null
-    private var settingsMode = false
+    private var currentTab = Tab.RUN
     private val dateKey get() = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
     private val navy = 0xff172554.toInt()
     private val accent = 0xff4f46e5.toInt()
@@ -49,7 +50,11 @@ class MainActivity : ComponentActivity() {
     private fun render(state: AppState) {
         val chain = currentChainId?.let { id -> state.chains.firstOrNull { it.id == id } }
         if (currentChainId != null && chain == null) currentChainId = null
-        if (!settingsMode) showToday(state) else if (chain != null) showChain(state, chain) else showSettings(state)
+        when (currentTab) {
+            Tab.RUN -> showToday(state)
+            Tab.CHAINS -> if (chain != null) showChain(state, chain) else showChains(state)
+            Tab.STATS -> showStats(state)
+        }
     }
 
     private fun base(title: String): LinearLayout = LinearLayout(this).apply {
@@ -97,22 +102,55 @@ class MainActivity : ComponentActivity() {
             }
             root.addView(card(row))
         }
-        root.addView(button("⚙  Настройки") { settingsMode = true; render(state) })
+        addBottomNav(root, Tab.RUN)
         setContentView(root)
     }
 
-    private fun showSettings(state: AppState) {
-        val root = base("Настройки")
-        root.addView(button("← К выполнению") { settingsMode = false; currentChainId = null; render(state) })
-        root.addView(TextView(this).apply { text = "Цепочки и расписания"; textSize = 16f; setPadding(0, 12, 0, 8) })
+    private fun showChains(state: AppState) {
+        val root = base(getString(R.string.tab_chains))
+        root.addView(TextView(this).apply { text = getString(R.string.chains_subtitle); textSize = 16f; setPadding(0, 12, 0, 8) })
         state.chains.forEach { chain -> root.addView(button(chain.name) { currentChainId = chain.id; render(state) }) }
-        root.addView(button("＋ Новая цепочка") { newChainDialog() })
+        root.addView(button("＋  ${getString(R.string.new_chain)}") { newChainDialog() })
+        addBottomNav(root, Tab.CHAINS)
         setContentView(root)
+    }
+
+    private fun showStats(state: AppState) {
+        val root = base(getString(R.string.tab_stats))
+        root.addView(TextView(this).apply { text = getString(R.string.stats_placeholder); textSize = 18f; setPadding(0, 32, 0, 32) })
+        addBottomNav(root, Tab.STATS)
+        setContentView(root)
+    }
+
+    private fun bottomNav(active: Tab): LinearLayout = LinearLayout(this).apply {
+        orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER; setPadding(0, 0, 0, 0)
+        background = android.graphics.drawable.GradientDrawable().apply { cornerRadius = 0f; setColor(0xffe2e8f0.toInt()) }
+        fun add(label: String, iconRes: Int, tab: Tab) {
+            val selected = tab == active
+            val foreground = if (selected) 0xffffffff.toInt() else 0xff334155.toInt()
+            val item = MaterialButton(this@MainActivity).apply {
+                text = label; isAllCaps = false; textSize = 14f; cornerRadius = 8
+                this.icon = getDrawable(iconRes); iconGravity = MaterialButton.ICON_GRAVITY_TEXT_TOP; iconPadding = 14; iconSize = 64
+                minHeight = 144; minWidth = 0; setPadding(4, 12, 4, 12); insetTop = 0; insetBottom = 0; elevation = 0f; stateListAnimator = null
+                backgroundTintList = ColorStateList.valueOf(if (selected) accent else android.graphics.Color.TRANSPARENT)
+                iconTint = ColorStateList.valueOf(foreground); setTextColor(foreground)
+                setOnClickListener { currentTab = tab; currentChainId = null; render(viewModel.state.value) }
+            }
+            addView(item, LinearLayout.LayoutParams(0, 150, 1f))
+        }
+        add(getString(R.string.tab_run), android.R.drawable.ic_media_play, Tab.RUN)
+        add(getString(R.string.tab_chains), android.R.drawable.ic_menu_sort_by_size, Tab.CHAINS)
+        add(getString(R.string.tab_stats), android.R.drawable.ic_menu_info_details, Tab.STATS)
+    }
+
+    private fun addBottomNav(root: LinearLayout, active: Tab) {
+        root.addView(Space(this), LinearLayout.LayoutParams(1, 0, 1f))
+        root.addView(bottomNav(active), LinearLayout.LayoutParams(-1, 158))
     }
 
     private fun showChain(state: AppState, chain: Chain) {
         val root = base(chain.name)
-        root.addView(button("← К настройкам") { currentChainId = null; settingsMode = true; render(state) })
+        root.addView(button("← ${getString(R.string.tab_chains)}") { currentChainId = null; currentTab = Tab.CHAINS; render(state) })
         root.addView(button("✎ Изменить название") { editChainDialog(chain) })
         if (chain.actions.isEmpty()) root.addView(TextView(this).apply { text = "В цепочке пока нет действий"; setPadding(0, 20, 0, 10) })
         chain.actions.forEachIndexed { index, action ->
@@ -126,6 +164,7 @@ class MainActivity : ComponentActivity() {
         }
         root.addView(button("＋ Добавить действие") { newActionDialog(chain) })
         root.addView(button("Удалить цепочку") { confirmDeleteChain(chain) })
+        addBottomNav(root, Tab.CHAINS)
         setContentView(root)
     }
 
