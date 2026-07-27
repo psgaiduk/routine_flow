@@ -42,6 +42,7 @@ Routine Flow — Android-приложение для создания цепоч
 - Kotlin;
 - Android SDK;
 - Material Components поверх Android View без Compose в текущем MVP;
+- обработка системных insets для status bar и navigation bar;
 - MVVM: `MainViewModel` хранит состояние экрана;
 - `StateFlow` и Kotlin Coroutines для состояния и асинхронных операций;
 - Repository для доступа к данным;
