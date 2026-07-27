@@ -1,0 +1,25 @@
+# Android Studio
+.idea/
+*.iml
+.kotlin/
+
+# Gradle
+.gradle/
+build/
+*/build/
+
+# Local machine configuration
+local.properties
+
+# Android generated files
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Signing and secrets
+*.jks
+*.keystore
+google-services.json
+
+# macOS
+.DS_Store
