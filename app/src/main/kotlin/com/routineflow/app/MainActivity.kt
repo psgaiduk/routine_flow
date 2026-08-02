@@ -43,6 +43,8 @@ class MainActivity : AppCompatActivity() {
     private var activeTimerText: TextView? = null
     private var activeProgress: ProgressBar? = null
     private var activePauseButton: MaterialButton? = null
+    private var executionScreenRoot: View? = null
+    private var executionScreenChainId: Long? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,7 +62,13 @@ class MainActivity : AppCompatActivity() {
         val executionChain = executionChainId?.let { id -> state.chains.firstOrNull { it.id == id } }
         if (executionChainId != null && executionChain == null) executionChainId = null
         if (executionChain != null) {
-            if (state.running?.chainId == executionChain.id) showChainRunning(state, executionChain) else showChainExecution(state, executionChain)
+            if (state.running?.chainId == executionChain.id) {
+                showChainRunning(state, executionChain)
+            } else if (executionScreenRoot?.isAttachedToWindow == true && executionScreenChainId == executionChain.id) {
+                return
+            } else {
+                showChainExecution(state, executionChain)
+            }
             return
         }
         when (currentTab) {
@@ -140,23 +148,35 @@ class MainActivity : AppCompatActivity() {
         root.addView(TextView(this).apply { text = getString(R.string.run_time_range, timeFormat.format(now.time), timeFormat.format(end.time)); textSize = 15f; setTextColor(0xff64748b.toInt()); setPadding(0, 0, 0, 20) })
         actions.forEachIndexed { index, action ->
             val completed = action.doneOn == dateKey
-            val isCurrent = state.running?.chainId == chain.id && state.running?.actionId == action.id
             val row = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
             row.addView(TextView(this).apply { text = "${index + 1}. ${action.title}\n${formatDuration(action.durationSeconds.toLong())}"; textSize = 17f; setPadding(8, 12, 8, 12) }, LinearLayout.LayoutParams(0, -2, 1f))
-            row.addView(TextView(this).apply { text = when { isCurrent -> formatDuration(state.running!!.remainingSeconds); completed -> "✓"; else -> "○" }; textSize = 18f; setTextColor(if (completed) accent else 0xff64748b.toInt()) })
-            root.addView(card(row))
+            row.addView(circleToggle(completed, action.executionStatus == "SKIPPED") { checked, view ->
+                styleCircleToggle(view, checked, false)
+                viewModel.toggleAction(chain.id, action.id, checked)
+            }, LinearLayout.LayoutParams(48, 48).apply {
+                marginStart = 12
+            })
+            root.addView(card(row).apply { setContentPadding(16, 10, 12, 10) })
         }
         val running = state.running?.takeIf { it.chainId == chain.id }
         val bottom = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL; setPadding(0, 0, 0, 0); background = android.graphics.drawable.GradientDrawable().apply { setColor(0xffe2e8f0.toInt()) } }
         val close = TextView(this).apply {
             text = "✕"; textSize = 14f; gravity = Gravity.CENTER; setTextColor(0xff334155.toInt()); isClickable = true
             background = android.graphics.drawable.GradientDrawable().apply { cornerRadius = 8f; setColor(0xffe2e8f0.toInt()) }
-            setOnClickListener { executionChainId = null; render(state) }
+            setOnClickListener { executionScreenRoot = null; executionScreenChainId = null; executionChainId = null; render(state) }
         }
         bottom.addView(close, LinearLayout.LayoutParams(144, 150))
         val startLabel = if (running != null) formatDuration(running.remainingSeconds) else getString(R.string.run_start)
-        bottom.addView(bottomActionButton(startLabel, true) { if (running == null && actions.any { it.doneOn != dateKey }) viewModel.startChain(chain.id) }, LinearLayout.LayoutParams(0, 150, 1f))
+        bottom.addView(bottomActionButton(startLabel, true) {
+            if (running == null && actions.any { it.doneOn != dateKey }) {
+                executionScreenRoot = null
+                executionScreenChainId = null
+                viewModel.startChain(chain.id)
+            }
+        }, LinearLayout.LayoutParams(0, 150, 1f))
         root.addView(Space(this), LinearLayout.LayoutParams(1, 0, 1f)); root.addView(bottom, LinearLayout.LayoutParams(-1, 158))
+        executionScreenRoot = root
+        executionScreenChainId = chain.id
         setContentView(root)
     }
 
@@ -224,6 +244,28 @@ class MainActivity : AppCompatActivity() {
     private fun controlButton(text: String, primary: Boolean, textSizeSp: Float = 14f, onClick: () -> Unit) = MaterialButton(this).apply {
         this.text = text; isAllCaps = false; textSize = textSizeSp; cornerRadius = 8; insetTop = 0; insetBottom = 0; elevation = 0f; stateListAnimator = null
         backgroundTintList = ColorStateList.valueOf(if (primary) accent else 0xffe2e8f0.toInt()); setTextColor(if (primary) 0xffffffff.toInt() else 0xff334155.toInt()); setOnClickListener { onClick() }
+    }
+
+    private fun circleToggle(checked: Boolean, skipped: Boolean, onToggle: (Boolean, ImageView) -> Unit) = ImageView(this).apply {
+        scaleType = ImageView.ScaleType.CENTER
+        imageTintList = ColorStateList.valueOf(0xffffffff.toInt())
+        isClickable = true; isFocusable = true
+        styleCircleToggle(this, checked, skipped)
+        setOnClickListener {
+            val nextChecked = !isSelected
+            isSelected = nextChecked
+            onToggle(nextChecked, this)
+        }
+    }
+
+    private fun styleCircleToggle(view: ImageView, checked: Boolean, skipped: Boolean) {
+        view.isSelected = checked
+        if (checked) view.setImageResource(R.drawable.ic_check) else view.setImageDrawable(null)
+        view.background = android.graphics.drawable.GradientDrawable().apply {
+            shape = android.graphics.drawable.GradientDrawable.OVAL
+            setColor(when { skipped -> 0xffef4444.toInt(); checked -> 0xff22c55e.toInt(); else -> 0xffdbeafe.toInt() })
+            setStroke(2, when { skipped -> 0xffdc2626.toInt(); checked -> 0xff16a34a.toInt(); else -> accent })
+        }
     }
 
     private fun formatAdaptive(seconds: Long): String = when {

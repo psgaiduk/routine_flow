@@ -49,7 +49,12 @@ class MainViewModel @Inject constructor(
     }
 
     fun toggleAction(chainId: Long, actionId: Long, checked: Boolean) = update { chains ->
-        chains.map { chain -> if (chain.id == chainId) chain.copy(actions = chain.actions.map { action -> if (action.id == actionId) action.copy(doneOn = if (checked) dateKey else null) else action }) else chain }
+        chains.map { chain -> if (chain.id == chainId) chain.copy(actions = chain.actions.map { action ->
+            if (action.id == actionId) action.copy(
+                doneOn = if (checked) dateKey else null,
+                executionStatus = if (checked) "DONE" else null
+            ) else action
+        }) else chain }
     }
 
     fun deleteAction(chainId: Long, actionId: Long) = update { chains -> chains.map { if (it.id == chainId) it.copy(actions = it.actions.filterNot { action -> action.id == actionId }) else it } }
