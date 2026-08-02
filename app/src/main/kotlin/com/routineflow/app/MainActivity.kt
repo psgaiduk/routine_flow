@@ -1,7 +1,9 @@
 package com.routineflow.app
 
 import android.app.AlertDialog
+import android.Manifest
 import android.content.res.ColorStateList
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.text.InputType
 import android.view.Gravity
@@ -53,6 +55,9 @@ class MainActivity : AppCompatActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = true
         WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightNavigationBars = true
+        if (android.os.Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1001)
+        }
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) { viewModel.state.collect(::render) }
         }

@@ -17,6 +17,13 @@
     <string name="run_done">✓ Done</string>
     <string name="run_start">Start</string>
     <string name="run_back">Back</string>
+    <string name="notification_channel_name">Time exceeded</string>
+    <string name="notification_channel_description">Reminders when an action exceeds its planned duration</string>
+    <string name="notification_overtime_title">Time is up</string>
+    <string name="notification_overtime_started">“%1$s” is taking longer than planned</string>
+    <string name="notification_overtime_reminder">“%1$s” has been running %2$s over the plan</string>
+    <string name="duration_minutes_seconds">%1$d min %2$d sec</string>
+    <string name="duration_seconds">%1$d sec</string>
     <string name="run_chain_meta">Duration %1$s — Steps: %2$d</string>
     <string name="run_time_range">%1$s — %2$s</string>
     <string name="running_duration">Duration: %1$s</string>

@@ -17,6 +17,13 @@
     <string name="run_done">✓ Готово</string>
     <string name="run_start">Запустить</string>
     <string name="run_back">Назад</string>
+    <string name="notification_channel_name">Окончание времени</string>
+    <string name="notification_channel_description">Напоминания о превышении времени действия</string>
+    <string name="notification_overtime_title">Время вышло</string>
+    <string name="notification_overtime_started">Действие «%1$s» продолжается дольше запланированного</string>
+    <string name="notification_overtime_reminder">Действие «%1$s» выполняется уже %2$s сверх плана</string>
+    <string name="duration_minutes_seconds">%1$d мин %2$d сек</string>
+    <string name="duration_seconds">%1$d сек</string>
     <string name="run_chain_meta">Длительность %1$s — Шагов: %2$d</string>
     <string name="run_time_range">%1$s — %2$s</string>
     <string name="running_duration">Продолжительность: %1$s</string>

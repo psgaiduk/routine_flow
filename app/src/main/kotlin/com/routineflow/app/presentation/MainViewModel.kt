@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.routineflow.app.data.ChainRepository
 import com.routineflow.app.domain.GetTodayActionsUseCase
 import com.routineflow.app.domain.RoutineDay
+import com.routineflow.app.notifications.OvertimeNotifier
 import com.routineflow.app.model.Action
 import com.routineflow.app.model.AppState
 import com.routineflow.app.model.Chain
@@ -24,7 +25,8 @@ import javax.inject.Inject
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val repository: ChainRepository,
-    private val getTodayActions: GetTodayActionsUseCase
+    private val getTodayActions: GetTodayActionsUseCase,
+    private val overtimeNotifier: OvertimeNotifier
 ) : ViewModel() {
     private val running = MutableStateFlow<RunningAction?>(null)
     private var timerJob: Job? = null
@@ -73,6 +75,10 @@ class MainViewModel @Inject constructor(
                 val action = pending.removeAt(0)
                 var elapsed = 0L
                 var postponed = false
+                var overtimeSignalSent = false
+                var reminderNumber = 0
+                var reminderInterval = 30L
+                var nextReminderAt = action.durationSeconds.coerceAtLeast(1).toLong() + reminderInterval
                 while (true) {
                     while (running.value?.paused == true) {
                         if (postponeRequested) break
@@ -85,6 +91,15 @@ class MainViewModel @Inject constructor(
                     val total = action.durationSeconds.coerceAtLeast(1).toLong()
                     val remaining = (total - elapsed).coerceAtLeast(0L)
                     running.value = RunningAction(chainId, action.id, total, remaining, estimatedEndMillis, elapsed, elapsed >= total)
+                    if (!overtimeSignalSent && elapsed >= total) {
+                        overtimeNotifier.notifyOvertime(chain.name, action.title, 0, elapsed - total)
+                        overtimeSignalSent = true
+                    } else if (overtimeSignalSent && elapsed >= nextReminderAt) {
+                        reminderNumber += 1
+                        overtimeNotifier.notifyOvertime(chain.name, action.title, reminderNumber, elapsed - total)
+                        nextReminderAt = elapsed + reminderInterval * 2
+                        reminderInterval *= 2
+                    }
                     delay(1_000L)
                     elapsed = running.value?.elapsedSeconds?.plus(1L) ?: elapsed + 1L
                 }
