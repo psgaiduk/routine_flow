@@ -324,7 +324,23 @@ class MainActivity : AppCompatActivity() {
     private fun showChains(state: AppState) {
         val root = base(getString(R.string.tab_chains))
         root.addView(TextView(this).apply { text = getString(R.string.chains_subtitle); textSize = 16f; setPadding(0, 12, 0, 8) })
-        state.chains.forEach { chain -> root.addView(button(chain.name) { executionChainId = null; currentChainId = chain.id; render(state) }) }
+        state.chains.forEach { chain ->
+            val row = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(4, 12, 4, 12) }
+            row.addView(TextView(this).apply {
+                text = getString(R.string.run_chain_meta, formatDuration(chain.actions.sumOf { it.durationSeconds }.toLong()), chain.actions.size)
+                textSize = 13f; setTextColor(0xff64748b.toInt())
+            })
+            row.addView(TextView(this).apply {
+                text = chain.name; textSize = 20f; setTypeface(typeface, android.graphics.Typeface.BOLD)
+                setTextColor(navy); setPadding(0, 4, 0, 0)
+            })
+            val open = { executionChainId = null; currentChainId = chain.id; render(state) }
+            row.setOnClickListener { open() }
+            root.addView(card(row).apply {
+                radius = 22f; strokeWidth = 2; strokeColor = 0xffcbd5e1.toInt(); isClickable = true; isFocusable = true
+                setOnClickListener { open() }
+            }, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = 12 })
+        }
         root.addView(button("＋  ${getString(R.string.new_chain)}") { newChainDialog() })
         addBottomNav(root, Tab.CHAINS)
         setContentView(root)
