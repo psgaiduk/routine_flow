@@ -30,7 +30,7 @@ class LocalChainRepository @Inject constructor(@ApplicationContext private val c
             val actions = (0 until jsonActions.length()).map { actionIndex ->
                 val jsonAction = jsonActions.getJSONObject(actionIndex)
                 val durationSeconds = if (jsonAction.has("durationSeconds")) jsonAction.optInt("durationSeconds", 20 * 60) else jsonAction.optInt("durationMinutes", 20) * 60
-                Action(jsonAction.getLong("id"), jsonAction.getString("title"), jsonAction.getString("recurrence"), durationSeconds, jsonAction.optString("doneOn").takeUnless { it.isBlank() || it == "null" })
+                Action(jsonAction.getLong("id"), jsonAction.getString("title"), jsonAction.getString("recurrence"), durationSeconds, jsonAction.optString("doneOn").takeUnless { it.isBlank() || it == "null" }, jsonAction.optString("executionStatus").takeUnless { it.isBlank() || it == "null" })
             }
             Chain(jsonChain.getLong("id"), jsonChain.getString("name"), actions)
         }
@@ -42,7 +42,7 @@ class LocalChainRepository @Inject constructor(@ApplicationContext private val c
             root.put(JSONObject().apply {
                 put("id", chain.id); put("name", chain.name)
                 put("actions", JSONArray().apply { chain.actions.forEach { action ->
-                    put(JSONObject().apply { put("id", action.id); put("title", action.title); put("recurrence", action.recurrence); put("durationSeconds", action.durationSeconds); put("doneOn", action.doneOn ?: JSONObject.NULL) })
+                    put(JSONObject().apply { put("id", action.id); put("title", action.title); put("recurrence", action.recurrence); put("durationSeconds", action.durationSeconds); put("doneOn", action.doneOn ?: JSONObject.NULL); put("executionStatus", action.executionStatus ?: JSONObject.NULL) })
                 } })
             })
         }

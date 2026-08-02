@@ -14,4 +14,15 @@
     <string name="run_start">Запустить</string>
     <string name="run_chain_meta">Длительность %1$s — Шагов: %2$d</string>
     <string name="run_time_range">%1$s — %2$s</string>
+    <string name="running_duration">Продолжительность: %1$s</string>
+    <string name="running_reset">Сбросить таймер</string>
+    <string name="running_postpone">Сделать позже</string>
+    <string name="running_next">Следующий шаг</string>
+    <string name="running_last_step">Последний шаг</string>
+    <string name="running_end">Примерное окончание: %1$s</string>
+    <string name="running_pause">Пауза</string>
+    <string name="running_resume">Старт</string>
+    <string name="running_finish">✓ Завершить</string>
+    <string name="running_skip">Пропустить</string>
+    <string name="running_remaining">Осталось шагов: %1$d</string>
 </resources>

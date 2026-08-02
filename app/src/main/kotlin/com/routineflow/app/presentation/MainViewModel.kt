@@ -30,6 +30,9 @@ class MainViewModel @Inject constructor(
 ) : ViewModel() {
     private val running = MutableStateFlow<RunningAction?>(null)
     private var timerJob: Job? = null
+    private var postponeRequested = false
+    private var completionStatus = "DONE"
+    private var completionRequested = false
     val state: StateFlow<AppState> = combine(repository.chains, running) { chains, current -> AppState(chains, current) }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppState())
     private val dateKey get() = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
 
@@ -55,28 +58,67 @@ class MainViewModel @Inject constructor(
 
     fun startChain(chainId: Long) {
         if (running.value != null) return
+        postponeRequested = false
+        completionStatus = "DONE"
+        completionRequested = false
         timerJob?.cancel()
         timerJob = viewModelScope.launch {
             val chain = repository.chains.value.firstOrNull { it.id == chainId } ?: return@launch
-            val actions = chain.actions.filter { getTodayActions.isDue(it) && it.doneOn != dateKey }
-            for (action in actions) {
-                var seconds = action.durationSeconds.coerceAtLeast(1).toLong()
-                while (seconds >= 0L) {
-                    running.value = RunningAction(chainId, action.id, seconds)
-                    if (seconds == 0L) break
-                    delay(1_000L); seconds--
+            val pending = chain.actions.filter { getTodayActions.isDue(it) && it.doneOn != dateKey }.toMutableList()
+            var estimatedEndMillis = System.currentTimeMillis() + pending.sumOf { it.durationSeconds }.toLong() * 1000L
+            while (pending.isNotEmpty()) {
+                val action = pending.removeAt(0)
+                var elapsed = 0L
+                var postponed = false
+                while (true) {
+                    while (running.value?.paused == true) {
+                        if (postponeRequested) break
+                        delay(100L)
+                    }
+                    if (postponeRequested) {
+                        postponeRequested = false; pending.add(action); running.value = null; postponed = true; break
+                    }
+                    if (completionRequested) { completionRequested = false; break }
+                    val total = action.durationSeconds.coerceAtLeast(1).toLong()
+                    val remaining = (total - elapsed).coerceAtLeast(0L)
+                    running.value = RunningAction(chainId, action.id, total, remaining, estimatedEndMillis, elapsed, elapsed >= total)
+                    delay(1_000L)
+                    elapsed = running.value?.elapsedSeconds?.plus(1L) ?: elapsed + 1L
                 }
-                completeAction(chainId, action.id)
+                if (postponed) continue
+                running.value = RunningAction(chainId, action.id, action.durationSeconds.toLong(), 0L, estimatedEndMillis)
+                completeAction(chainId, action.id, completionStatus)
+                completionStatus = "DONE"
+                estimatedEndMillis = System.currentTimeMillis() + pending.sumOf { it.durationSeconds }.toLong() * 1000L
             }
             running.value = null
         }
     }
 
-    fun stopAction() { timerJob?.cancel(); timerJob = null; running.value = null }
+    fun stopAction() {
+        postponeRequested = false
+        timerJob?.cancel(); timerJob = null; running.value = null
+    }
 
-    private suspend fun completeAction(chainId: Long, actionId: Long) {
+    fun pauseResume() {
+        running.value?.let { running.value = it.copy(paused = !it.paused) }
+    }
+
+    fun resetCurrentTimer() {
+        running.value?.let { current ->
+            val action = repository.chains.value.firstOrNull { it.id == current.chainId }?.actions?.firstOrNull { it.id == current.actionId }
+            if (action != null) running.value = current.copy(totalSeconds = action.durationSeconds.toLong(), remainingSeconds = action.durationSeconds.toLong(), elapsedSeconds = 0L, overtime = false, paused = false)
+        }
+    }
+
+    fun postponeCurrent() { postponeRequested = true; running.value?.let { running.value = it.copy(paused = false) } }
+
+    fun completeCurrent() { completionStatus = "DONE"; completionRequested = true; running.value?.let { current -> running.value = current.copy(paused = false) } }
+    fun skipCurrent() { completionStatus = "SKIPPED"; completionRequested = true; running.value?.let { current -> running.value = current.copy(paused = false) } }
+
+    private suspend fun completeAction(chainId: Long, actionId: Long, status: String) {
         repository.replace(repository.chains.value.map { chain ->
-            if (chain.id == chainId) chain.copy(actions = chain.actions.map { action -> if (action.id == actionId) action.copy(doneOn = dateKey) else action }) else chain
+            if (chain.id == chainId) chain.copy(actions = chain.actions.map { action -> if (action.id == actionId) action.copy(doneOn = dateKey, executionStatus = status) else action }) else chain
         })
     }
 

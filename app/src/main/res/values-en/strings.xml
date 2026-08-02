@@ -14,4 +14,15 @@
     <string name="run_start">Start</string>
     <string name="run_chain_meta">Duration %1$s — Steps: %2$d</string>
     <string name="run_time_range">%1$s — %2$s</string>
+    <string name="running_duration">Duration: %1$s</string>
+    <string name="running_reset">Reset timer</string>
+    <string name="running_postpone">Do later</string>
+    <string name="running_next">Next step</string>
+    <string name="running_last_step">Last step</string>
+    <string name="running_end">Approximate end: %1$s</string>
+    <string name="running_pause">Pause</string>
+    <string name="running_resume">Start</string>
+    <string name="running_finish">✓ Finish</string>
+    <string name="running_skip">Skip</string>
+    <string name="running_remaining">Steps left: %1$d</string>
 </resources>
