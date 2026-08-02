@@ -18,6 +18,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.routineflow.app.model.Action
 import com.routineflow.app.model.AppState
 import com.routineflow.app.model.Chain
+import com.routineflow.app.domain.RoutineDay
 import com.routineflow.app.presentation.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import com.google.android.material.button.MaterialButton
@@ -34,7 +35,7 @@ class MainActivity : AppCompatActivity() {
     private var currentChainId: Long? = null
     private var currentTab = Tab.RUN
     private var executionChainId: Long? = null
-    private val dateKey get() = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
+    private val dateKey get() = RoutineDay.currentDateKey()
     private val navy = 0xff172554.toInt()
     private val accent = 0xff4f46e5.toInt()
     private var activeRunRoot: View? = null
@@ -45,6 +46,7 @@ class MainActivity : AppCompatActivity() {
     private var activePauseButton: MaterialButton? = null
     private var executionScreenRoot: View? = null
     private var executionScreenChainId: Long? = null
+    private var completedChainsExpanded = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -113,10 +115,20 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showToday(state: AppState) {
-        val root = base("Сегодня")
+        val root = base(getString(R.string.run_title))
         val chainsToday = state.chains.filter { chain -> chain.actions.any { viewModel.isDue(it) } }
-        root.addView(TextView(this).apply { text = if (chainsToday.isEmpty()) getString(R.string.run_no_chains) else getString(R.string.run_subtitle); textSize = 15f; setPadding(0, 0, 0, 12) })
-        chainsToday.forEach { chain ->
+        val completedChains = chainsToday.filter { chain ->
+            chain.actions.filter { viewModel.isDue(it) }.all { it.doneOn == dateKey }
+        }
+        val activeChains = chainsToday - completedChains.toSet()
+        root.addView(TextView(this).apply {
+            text = if (activeChains.isEmpty()) {
+                if (completedChains.isEmpty()) getString(R.string.run_no_chains) else getString(R.string.run_no_active_chains)
+            } else getString(R.string.run_subtitle)
+            textSize = 15f; setPadding(0, 0, 0, 12)
+        })
+
+        fun addChainCard(chain: Chain) {
             val dueActions = chain.actions.filter { viewModel.isDue(it) }
             val row = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(4, 12, 4, 12) }
             row.addView(TextView(this).apply { text = getString(R.string.run_chain_meta, formatDuration(dueActions.sumOf { it.durationSeconds }.toLong()), dueActions.size); textSize = 13f; setTextColor(0xff64748b.toInt()) })
@@ -131,7 +143,19 @@ class MainActivity : AppCompatActivity() {
             root.addView(card(row).apply {
                 radius = 22f; strokeWidth = 2; strokeColor = 0xffcbd5e1.toInt(); isClickable = true; isFocusable = true
                 setOnClickListener { open() }
-            })
+            }, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = 12 })
+        }
+        activeChains.forEach(::addChainCard)
+
+        if (completedChains.isNotEmpty()) {
+            val completedHeader = TextView(this).apply {
+                text = getString(if (completedChainsExpanded) R.string.run_completed_collapse else R.string.run_completed_expand, completedChains.size)
+                textSize = 16f; setTypeface(typeface, android.graphics.Typeface.BOLD); setTextColor(navy)
+                setPadding(4, 20, 4, 12); isClickable = true; isFocusable = true
+                setOnClickListener { completedChainsExpanded = !completedChainsExpanded; render(state) }
+            }
+            root.addView(completedHeader)
+            if (completedChainsExpanded) completedChains.forEach(::addChainCard)
         }
         addBottomNav(root, Tab.RUN)
         setContentView(root)
@@ -146,12 +170,20 @@ class MainActivity : AppCompatActivity() {
         end.timeInMillis += totalSeconds * 1000L
         val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
         root.addView(TextView(this).apply { text = getString(R.string.run_time_range, timeFormat.format(now.time), timeFormat.format(end.time)); textSize = 15f; setTextColor(0xff64748b.toInt()); setPadding(0, 0, 0, 20) })
+        val allCompleted = actions.isNotEmpty() && actions.all { it.doneOn == dateKey }
         actions.forEachIndexed { index, action ->
             val completed = action.doneOn == dateKey
             val row = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
             row.addView(TextView(this).apply { text = "${index + 1}. ${action.title}\n${formatDuration(action.durationSeconds.toLong())}"; textSize = 17f; setPadding(8, 12, 8, 12) }, LinearLayout.LayoutParams(0, -2, 1f))
             row.addView(circleToggle(completed, action.executionStatus == "SKIPPED") { checked, view ->
                 styleCircleToggle(view, checked, false)
+                val nextAllCompleted = actions.all { item ->
+                    if (item.id == action.id) checked else item.doneOn == dateKey
+                }
+                if (nextAllCompleted != allCompleted) {
+                    executionScreenRoot = null
+                    executionScreenChainId = null
+                }
                 viewModel.toggleAction(chain.id, action.id, checked)
             }, LinearLayout.LayoutParams(48, 48).apply {
                 marginStart = 12
@@ -160,20 +192,30 @@ class MainActivity : AppCompatActivity() {
         }
         val running = state.running?.takeIf { it.chainId == chain.id }
         val bottom = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL; setPadding(0, 0, 0, 0); background = android.graphics.drawable.GradientDrawable().apply { setColor(0xffe2e8f0.toInt()) } }
-        val close = TextView(this).apply {
-            text = "✕"; textSize = 14f; gravity = Gravity.CENTER; setTextColor(0xff334155.toInt()); isClickable = true
-            background = android.graphics.drawable.GradientDrawable().apply { cornerRadius = 8f; setColor(0xffe2e8f0.toInt()) }
-            setOnClickListener { executionScreenRoot = null; executionScreenChainId = null; executionChainId = null; render(state) }
+        fun goBack() {
+            executionScreenRoot = null
+            executionScreenChainId = null
+            executionChainId = null
+            render(state)
         }
-        bottom.addView(close, LinearLayout.LayoutParams(144, 150))
-        val startLabel = if (running != null) formatDuration(running.remainingSeconds) else getString(R.string.run_start)
-        bottom.addView(bottomActionButton(startLabel, true) {
-            if (running == null && actions.any { it.doneOn != dateKey }) {
-                executionScreenRoot = null
-                executionScreenChainId = null
-                viewModel.startChain(chain.id)
+        if (allCompleted) {
+            bottom.addView(bottomActionButton(getString(R.string.run_back), false, 16f, ::goBack), LinearLayout.LayoutParams(-1, 150))
+        } else {
+            val close = TextView(this).apply {
+                text = "✕"; textSize = 14f; gravity = Gravity.CENTER; setTextColor(0xff334155.toInt()); isClickable = true
+                background = android.graphics.drawable.GradientDrawable().apply { cornerRadius = 8f; setColor(0xffe2e8f0.toInt()) }
+                setOnClickListener { goBack() }
             }
-        }, LinearLayout.LayoutParams(0, 150, 1f))
+            bottom.addView(close, LinearLayout.LayoutParams(144, 150))
+            val startLabel = if (running != null) formatDuration(running.remainingSeconds) else getString(R.string.run_start)
+            bottom.addView(bottomActionButton(startLabel, true) {
+                if (running == null && actions.any { it.doneOn != dateKey }) {
+                    executionScreenRoot = null
+                    executionScreenChainId = null
+                    viewModel.startChain(chain.id)
+                }
+            }, LinearLayout.LayoutParams(0, 150, 1f))
+        }
         root.addView(Space(this), LinearLayout.LayoutParams(1, 0, 1f)); root.addView(bottom, LinearLayout.LayoutParams(-1, 158))
         executionScreenRoot = root
         executionScreenChainId = chain.id

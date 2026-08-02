@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.routineflow.app.data.ChainRepository
 import com.routineflow.app.domain.GetTodayActionsUseCase
+import com.routineflow.app.domain.RoutineDay
 import com.routineflow.app.model.Action
 import com.routineflow.app.model.AppState
 import com.routineflow.app.model.Chain
@@ -18,9 +19,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.Job
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
@@ -34,7 +32,7 @@ class MainViewModel @Inject constructor(
     private var completionStatus = "DONE"
     private var completionRequested = false
     val state: StateFlow<AppState> = combine(repository.chains, running) { chains, current -> AppState(chains, current) }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppState())
-    private val dateKey get() = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
+    private val dateKey get() = RoutineDay.currentDateKey()
 
     fun addChain(name: String) = update { it + Chain(System.currentTimeMillis(), name) }
 
