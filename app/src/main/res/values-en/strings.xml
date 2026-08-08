@@ -51,6 +51,7 @@
     <string name="select_weekday_error">Select at least one weekday</string>
     <string name="repeat_month_summary">Repeats on day %1$s of each month</string>
     <string name="repeat_interval_summary">Repeats every %1$s %2$s</string>
+    <string name="repeat_interval_weekdays_summary">Repeats every %1$s %2$s: %3$s</string>
     <string name="month_days_hint">For example: 10, 25</string>
     <string name="repeat_count">Count</string>
     <string name="unit_days">days</string>
@@ -62,6 +63,8 @@
     <string name="repeat_specific_number">Specific dates</string>
     <string name="repeat_weekday_mode">A weekday</string>
     <string name="repeat_weekday_summary">Repeats: %1$s %2$s</string>
+    <string name="repeat_month_weekday_interval_summary">Repeats every %1$s %2$s: %3$s %4$s</string>
+    <string name="repeat_month_dates_interval_summary">Repeats every %1$s %2$s, on days: %3$s</string>
     <string name="position_first">First</string>
     <string name="position_second">Second</string>
     <string name="position_third">Third</string>

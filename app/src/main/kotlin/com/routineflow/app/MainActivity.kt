@@ -821,6 +821,14 @@ class MainActivity : AppCompatActivity() {
 
     private fun localizedDays(codes: Collection<String>): String = codes.joinToString(", ") { getString(dayResource(it)) }
 
+    private fun positionResource(position: String?): Int = when (position) {
+        "SECOND" -> R.string.position_second
+        "THIRD" -> R.string.position_third
+        "FOURTH" -> R.string.position_fourth
+        "LAST" -> R.string.position_last
+        else -> R.string.position_first
+    }
+
     private fun recurrenceEditor(initial: String, onChanged: (String) -> Unit): LinearLayout {
         val types = arrayOf(R.string.repeat_none, R.string.repeat_daily, R.string.repeat_weekly, R.string.repeat_monthly, R.string.repeat_interval).map(::getString).toTypedArray()
         val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(0, 16, 0, 0) }
@@ -951,8 +959,24 @@ class MainActivity : AppCompatActivity() {
         rule.startsWith("MONTHLY:") -> getString(R.string.repeat_month_summary, rule.removePrefix("MONTHLY:"))
         rule.startsWith("INTERVAL:") -> {
             val parts = rule.split(":")
+            val amount = parts.getOrNull(1) ?: "1"
             val unit = when (parts.getOrNull(2)) { "WEEKS" -> R.string.unit_weeks; "MONTHS" -> R.string.unit_months; else -> R.string.unit_days }
-            getString(R.string.repeat_interval_summary, parts.getOrNull(1) ?: "1", getString(unit))
+            val extra = parts.drop(3)
+            when {
+                parts.getOrNull(2) == "WEEKS" && extra.firstOrNull() == "WEEKDAYS" -> {
+                    val days = extra.drop(1).flatMap { it.split(",") }.filter(String::isNotBlank)
+                    getString(R.string.repeat_interval_weekdays_summary, amount, getString(unit), localizedDays(days))
+                }
+                parts.getOrNull(2) == "MONTHS" && extra.firstOrNull() == "WEEKDAY" -> {
+                    val position = getString(positionResource(extra.getOrNull(1)))
+                    val day = getString(dayResource(extra.getOrNull(2).orEmpty()))
+                    getString(R.string.repeat_month_weekday_interval_summary, amount, getString(unit), position, day)
+                }
+                parts.getOrNull(2) == "MONTHS" && extra.firstOrNull() == "DATE" -> {
+                    getString(R.string.repeat_month_dates_interval_summary, amount, getString(unit), extra.drop(1).flatMap { it.split(",") }.joinToString(", "))
+                }
+                else -> getString(R.string.repeat_interval_summary, amount, getString(unit))
+            }
         }
         else -> rule
     }

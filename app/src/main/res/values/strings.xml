@@ -51,6 +51,7 @@
     <string name="select_weekday_error">Выберите хотя бы один день недели</string>
     <string name="repeat_month_summary">Повторять %1$s числа каждого месяца</string>
     <string name="repeat_interval_summary">Повторять каждые %1$s %2$s</string>
+    <string name="repeat_interval_weekdays_summary">Повторять каждые %1$s %2$s: %3$s</string>
     <string name="month_days_hint">Например: 10, 25</string>
     <string name="repeat_count">Количество</string>
     <string name="unit_days">дня</string>
@@ -62,6 +63,8 @@
     <string name="repeat_specific_number">В конкретные числа</string>
     <string name="repeat_weekday_mode">В определённый день</string>
     <string name="repeat_weekday_summary">Повторять: %1$s %2$s</string>
+    <string name="repeat_month_weekday_interval_summary">Повторять каждые %1$s %2$s: %3$s %4$s</string>
+    <string name="repeat_month_dates_interval_summary">Повторять каждые %1$s %2$s, числа: %3$s</string>
     <string name="position_first">Первый</string>
     <string name="position_second">Второй</string>
     <string name="position_third">Третий</string>
