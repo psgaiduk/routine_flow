@@ -594,7 +594,7 @@ class MainActivity : AppCompatActivity() {
     private fun newChainDialog() {
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(24, 8, 24, 4)
+            setPadding(24, 14, 24, 16)
         }
         content.addView(TextView(this).apply {
             text = getString(R.string.new_chain)
@@ -607,7 +607,7 @@ class MainActivity : AppCompatActivity() {
             text = getString(R.string.chain_name_label)
             textSize = 14f
             setTextColor(secondaryText)
-            setPadding(0, 0, 0, 16)
+            setPadding(0, 0, 0, 22)
         })
         val input = EditText(this).apply {
             hint = getString(R.string.chain_name_hint)
@@ -615,14 +615,14 @@ class MainActivity : AppCompatActivity() {
             setSingleLine(true)
             setTextColor(navy)
             setHintTextColor(secondaryText)
-            setPadding(16, 0, 16, 0)
+            setPadding(16, 14, 16, 14)
             background = android.graphics.drawable.GradientDrawable().apply {
                 cornerRadius = 16f
                 setColor(inputSurface)
                 setStroke(1, border)
             }
         }
-        content.addView(input, LinearLayout.LayoutParams(-1, 56))
+        content.addView(input, LinearLayout.LayoutParams(-1, 88))
         MaterialAlertDialogBuilder(this)
             .setView(content)
             .setNegativeButton(R.string.cancel, null)
