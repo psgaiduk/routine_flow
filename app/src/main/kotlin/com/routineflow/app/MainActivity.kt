@@ -2,8 +2,10 @@ package com.routineflow.app
 
 import android.app.AlertDialog
 import android.Manifest
+import android.content.ClipData
 import android.content.res.ColorStateList
 import android.content.pm.PackageManager
+import android.text.InputFilter
 import android.os.Bundle
 import android.text.InputType
 import android.view.Gravity
@@ -25,6 +27,7 @@ import com.routineflow.app.presentation.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -49,6 +52,7 @@ class MainActivity : AppCompatActivity() {
     private var executionScreenRoot: View? = null
     private var executionScreenChainId: Long? = null
     private var completedChainsExpanded = false
+    private var dragSourceView: View? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -85,7 +89,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun base(title: String): LinearLayout = LinearLayout(this).apply {
+    private fun base(title: String, showTitle: Boolean = true): LinearLayout = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL; val baseTop = 28; val baseBottom = 24; setPadding(24, baseTop, 24, baseBottom); setBackgroundColor(0xfff8fafc.toInt())
         ViewCompat.setOnApplyWindowInsetsListener(this) { view, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -93,7 +97,7 @@ class MainActivity : AppCompatActivity() {
             insets
         }
         post { ViewCompat.requestApplyInsets(this) }
-        addView(TextView(this@MainActivity).apply { text = title; textSize = 30f; setTypeface(typeface, android.graphics.Typeface.BOLD); setTextColor(navy); setPadding(0, 0, 0, 20) })
+        if (showTitle) addView(TextView(this@MainActivity).apply { text = title; textSize = 30f; setTypeface(typeface, android.graphics.Typeface.BOLD); setTextColor(navy); setPadding(0, 0, 0, 20) })
     }
 
     private fun button(text: String, onClick: () -> Unit) = MaterialButton(this).apply {
@@ -380,23 +384,124 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showChain(state: AppState, chain: Chain) {
-        val root = base(chain.name)
-        root.addView(button("← ${getString(R.string.tab_chains)}") { currentChainId = null; currentTab = Tab.CHAINS; render(state) })
-        root.addView(button("✎ Изменить название") { editChainDialog(chain) })
+        val root = base("", showTitle = false)
+        val nameField = EditText(this).apply {
+            setText(chain.name); textSize = 30f; setTypeface(typeface, android.graphics.Typeface.BOLD); setTextColor(navy)
+            setSingleLine(true); setSelectAllOnFocus(false); setPadding(0, 0, 0, 20); background = null
+            setOnFocusChangeListener { _, hasFocus -> if (!hasFocus) saveChainName(chain, text.toString()) }
+            setOnEditorActionListener { _, _, _ -> clearFocus(); true }
+        }
+        root.addView(nameField)
         if (chain.actions.isEmpty()) root.addView(TextView(this).apply { text = "В цепочке пока нет действий"; setPadding(0, 20, 0, 10) })
         chain.actions.forEachIndexed { index, action ->
-            val row = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
-            val check = CheckBox(this).apply { isChecked = action.doneOn == dateKey; text = "${index + 1}. ${action.title}\n${displayRecurrence(action.recurrence)} • ${action.durationSeconds / 60} мин"; textSize = 16f; setPadding(0, 8, 0, 8) }
-            check.setOnCheckedChangeListener { _, checked -> viewModel.toggleAction(chain.id, action.id, checked) }
-            check.setOnLongClickListener { confirmDeleteAction(chain, action); true }
-            row.addView(check, LinearLayout.LayoutParams(0, -2, 1f))
-            row.addView(button("Изменить") { editActionDialog(chain, action) })
-            root.addView(card(row))
+            val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(8, 12, 8, 12); isClickable = true; isFocusable = true }
+            val details = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+            details.addView(TextView(this).apply {
+                text = "${index + 1}. ${action.title}"; textSize = 17f; setTypeface(typeface, android.graphics.Typeface.BOLD); setTextColor(navy)
+            })
+            details.addView(TextView(this).apply {
+                text = "${displayRecurrence(action.recurrence)} • ${formatDuration(action.durationSeconds.toLong())}"; textSize = 14f; setTextColor(0xff64748b.toInt()); setPadding(0, 4, 0, 0)
+            })
+            row.addView(details, LinearLayout.LayoutParams(0, -2, 1f))
+            val dragHandle = ImageView(this).apply {
+                setImageResource(android.R.drawable.ic_menu_sort_by_size); imageTintList = ColorStateList.valueOf(0xff94a3b8.toInt())
+                contentDescription = "Изменить порядок"; setPadding(8, 8, 4, 8)
+            }
+            dragHandle.setOnLongClickListener { beginActionDrag(dragHandle, action) }
+            row.addView(dragHandle, LinearLayout.LayoutParams(44, 44))
+            row.setOnClickListener { editActionDialog(chain, action) }
+            row.setOnLongClickListener { beginActionDrag(row, action) }
+            val insertionMarker = View(this).apply {
+                setBackgroundColor(accent)
+                visibility = View.GONE
+            }
+            val cardContent = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                addView(insertionMarker, LinearLayout.LayoutParams(-1, 4))
+                addView(row)
+            }
+            row.setOnDragListener { view, event -> actionDragEvent(chain, action, view, insertionMarker, event) }
+            val actionCard = card(cardContent).apply {
+                setOnClickListener { editActionDialog(chain, action) }
+                setOnLongClickListener { beginActionDrag(this, action) }
+                setOnDragListener { view, event -> actionDragEvent(chain, action, view, insertionMarker, event) }
+            }
+            root.addView(actionCard, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = 10 })
         }
-        root.addView(button("＋ Добавить действие") { newActionDialog(chain) })
-        root.addView(button("Удалить цепочку") { confirmDeleteChain(chain) })
-        addBottomNav(root, Tab.CHAINS)
+        root.addView(Space(this), LinearLayout.LayoutParams(1, 0, 1f))
+        root.addView(chainSettingsBar(state, chain), LinearLayout.LayoutParams(-1, 158))
         setContentView(root)
+    }
+
+    private fun beginActionDrag(source: View, action: Action): Boolean {
+        val dragData = ClipData.newPlainText("action_id", action.id.toString())
+        dragSourceView = source
+        source.alpha = 0.45f
+        Toast.makeText(this, getString(R.string.drag_hint), Toast.LENGTH_SHORT).show()
+        @Suppress("DEPRECATION")
+        return source.startDrag(dragData, View.DragShadowBuilder(source), null, 0)
+    }
+
+    private fun actionDragEvent(chain: Chain, targetAction: Action, targetView: View, insertionMarker: View, event: android.view.DragEvent): Boolean = when (event.action) {
+        android.view.DragEvent.ACTION_DRAG_STARTED -> event.clipDescription?.hasMimeType("text/plain") == true
+        android.view.DragEvent.ACTION_DRAG_ENTERED -> {
+            if (targetView is MaterialCardView) targetView.strokeColor = accent
+            insertionMarker.visibility = View.VISIBLE
+            true
+        }
+        android.view.DragEvent.ACTION_DRAG_EXITED -> {
+            if (targetView is MaterialCardView) targetView.strokeColor = 0xffcbd5e1.toInt()
+            insertionMarker.visibility = View.GONE
+            true
+        }
+        android.view.DragEvent.ACTION_DROP -> {
+            val fromId = event.clipData.getItemAt(0).text.toString().toLongOrNull()
+            if (fromId != null && fromId != targetAction.id) viewModel.moveAction(chain.id, fromId, targetAction.id)
+            if (targetView is MaterialCardView) targetView.strokeColor = 0xffcbd5e1.toInt()
+            insertionMarker.visibility = View.GONE
+            true
+        }
+        android.view.DragEvent.ACTION_DRAG_ENDED -> {
+            if (targetView is MaterialCardView) targetView.strokeColor = 0xffcbd5e1.toInt()
+            insertionMarker.visibility = View.GONE
+            dragSourceView?.alpha = 1f
+            dragSourceView = null
+            true
+        }
+        else -> false
+    }
+
+    private fun saveChainName(chain: Chain, value: String) {
+        value.trim().takeIf(String::isNotEmpty)?.takeIf { it != chain.name }?.let { viewModel.renameChain(chain.id, it) }
+    }
+
+    private fun chainSettingsBar(state: AppState, chain: Chain): LinearLayout = LinearLayout(this).apply {
+        orientation = LinearLayout.HORIZONTAL
+        gravity = Gravity.CENTER
+        setPadding(0, 0, 0, 0)
+        background = android.graphics.drawable.GradientDrawable().apply { setColor(0xffe2e8f0.toInt()) }
+
+        fun item(iconRes: Int, label: String, primary: Boolean, onClick: () -> Unit) = MaterialButton(this@MainActivity).apply {
+            text = label; isAllCaps = false; textSize = if (label.isEmpty()) 20f else 14f
+            gravity = Gravity.CENTER; cornerRadius = 8; minHeight = 150; minWidth = 0
+            insetTop = 0; insetBottom = 0; elevation = 0f; stateListAnimator = null
+            icon = getDrawable(iconRes); iconGravity = if (label.isEmpty()) MaterialButton.ICON_GRAVITY_TEXT_START else MaterialButton.ICON_GRAVITY_TEXT_TOP
+            iconSize = if (label.isEmpty()) 42 else 36; iconPadding = 10
+            backgroundTintList = ColorStateList.valueOf(if (primary) accent else android.graphics.Color.TRANSPARENT)
+            iconTint = ColorStateList.valueOf(if (primary) 0xffffffff.toInt() else 0xff334155.toInt())
+            setTextColor(if (primary) 0xffffffff.toInt() else 0xff334155.toInt())
+            setOnClickListener { onClick() }
+        }
+
+        addView(item(R.drawable.ic_arrow_back, "", false) {
+            currentChainId = null; currentTab = Tab.CHAINS; render(state)
+        }, LinearLayout.LayoutParams(0, 150, 1f))
+        addView(item(R.drawable.ic_add, getString(R.string.add_action), true) {
+            newActionDialog(chain)
+        }, LinearLayout.LayoutParams(0, 150, 2f))
+        addView(item(R.drawable.ic_delete, "", false) {
+            confirmDeleteChain(chain)
+        }, LinearLayout.LayoutParams(0, 150, 1f))
     }
 
     private fun newChainDialog() {
@@ -415,26 +520,345 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun actionDialog(chain: Chain, existing: Action?) {
-        val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(40, 0, 40, 0) }
-        val title = EditText(this).apply { hint = "Например: Выпить стакан воды"; setText(existing?.title ?: "") }; box.addView(title)
+        val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(24, 20, 24, 8) }
+        fun input(value: String, type: Int = InputType.TYPE_CLASS_TEXT): EditText = EditText(this).apply {
+            setText(value); inputType = type; setSingleLine(true); textSize = 16f
+        }
+        box.addView(editorHeader(getString(R.string.action_name)))
+        val title = input(existing?.title ?: "").apply {
+            background = null
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 0, 0, 0)
+        }
+        val titleField = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(title, LinearLayout.LayoutParams(-1, 48))
+            addView(View(this@MainActivity).apply {
+                setBackgroundColor(0xff94a3b8.toInt())
+            }, LinearLayout.LayoutParams(-1, 1))
+        }
+        box.addView(titleField, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = 14 })
         val duration = existing?.durationSeconds ?: 20 * 60
-        val hours = EditText(this).apply { hint = "Часы"; inputType = InputType.TYPE_CLASS_NUMBER; setText((duration / 3600).toString()) }
-        val minutes = EditText(this).apply { hint = "Минуты"; inputType = InputType.TYPE_CLASS_NUMBER; setText(((duration % 3600) / 60).toString()) }
-        val seconds = EditText(this).apply { hint = "Секунды"; inputType = InputType.TYPE_CLASS_NUMBER; setText((duration % 60).toString()) }
-        val durationRow = LinearLayout(this)
-        durationRow.addView(hours, LinearLayout.LayoutParams(0, -2, 1f)); durationRow.addView(minutes, LinearLayout.LayoutParams(0, -2, 1f)); durationRow.addView(seconds, LinearLayout.LayoutParams(0, -2, 1f)); box.addView(durationRow)
+        val durationRow = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
+        val hours = CompactPicker(this, 0, 2, (duration / 3600).coerceAtMost(2), true)
+        val minutes = CompactPicker(this, 0, 59, (duration % 3600) / 60, true)
+        val seconds = CompactPicker(this, 0, 59, duration % 60, true)
+        val hourColumn = durationColumn(hours)
+        val minuteColumn = durationColumn(minutes)
+        val secondColumn = durationColumn(seconds)
+        durationRow.addView(hourColumn, LinearLayout.LayoutParams(0, 190, 1f).apply { marginEnd = 8 })
+        durationRow.addView(TextView(this).apply { text = ":"; textSize = 24f; setTypeface(typeface, android.graphics.Typeface.NORMAL); setTextColor(0xff64748b.toInt()); gravity = Gravity.CENTER; setPadding(0, 0, 0, 22) }, LinearLayout.LayoutParams(18, 190))
+        durationRow.addView(minuteColumn, LinearLayout.LayoutParams(0, 190, 1f).apply { marginStart = 8; marginEnd = 8 })
+        durationRow.addView(TextView(this).apply { text = ":"; textSize = 24f; setTypeface(typeface, android.graphics.Typeface.NORMAL); setTextColor(0xff64748b.toInt()); gravity = Gravity.CENTER; setPadding(0, 0, 0, 22) }, LinearLayout.LayoutParams(18, 190))
+        durationRow.addView(secondColumn, LinearLayout.LayoutParams(0, 190, 1f).apply { marginStart = 8 })
+        val durationSection = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(12, 10, 12, 12)
+            background = android.graphics.drawable.GradientDrawable().apply {
+                cornerRadius = 18f
+                setColor(0xfff8fafc.toInt())
+                setStroke(1, 0xffe2e8f0.toInt())
+            }
+        }
+        box.addView(editorHeader(getString(R.string.duration_label)))
+        durationSection.addView(durationRow, LinearLayout.LayoutParams(-1, 190))
+        box.addView(durationSection, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = 8 })
+        box.addView(durationLabelsRow(), LinearLayout.LayoutParams(-1, 42).apply { bottomMargin = 18 })
         var selected = existing?.recurrence ?: "NONE"
-        lateinit var recurrenceButton: MaterialButton
-        recurrenceButton = button("Повторение: ${displayRecurrence(selected)}") { showRecurrenceDialog { value, summary -> selected = value; recurrenceButton.text = "Повторение: $summary" } }
-        box.addView(recurrenceButton)
-        val dialogTitle = if (existing == null) "Новое действие" else "Изменить действие"
-        AlertDialog.Builder(this).setTitle(dialogTitle).setView(box).setNegativeButton("Отмена", null).setPositiveButton("Сохранить") { _, _ ->
-            val totalSeconds = (hours.text.toString().toIntOrNull() ?: 0) * 3600 + (minutes.text.toString().toIntOrNull() ?: 0) * 60 + (seconds.text.toString().toIntOrNull() ?: 0)
+        box.addView(recurrenceEditorV2(selected) { selected = it })
+        MaterialAlertDialogBuilder(this).setView(ScrollView(this).apply { addView(box) }).setNegativeButton(R.string.cancel, null)
+            .apply { if (existing != null) setNeutralButton(R.string.delete) { _, _ -> confirmDeleteAction(chain, existing) } }
+            .setPositiveButton(R.string.save) { _, _ ->
+            val totalSeconds = hours.value * 3600 + minutes.value * 60 + seconds.value
             title.text.toString().trim().takeIf(String::isNotEmpty)?.let { name ->
                 if (existing == null) viewModel.addAction(chain.id, name, selected, totalSeconds.coerceAtLeast(1))
                 else viewModel.editAction(chain.id, existing.id, name, selected, totalSeconds.coerceAtLeast(1))
             }
         }.show()
+    }
+
+    private fun editorHeader(text: String): TextView = TextView(this).apply {
+        this.text = text
+        textSize = 18f
+        setTypeface(typeface, android.graphics.Typeface.NORMAL)
+        setTextColor(navy)
+        setPadding(0, 0, 0, 12)
+    }
+
+    private fun durationColumn(picker: CompactPicker): LinearLayout = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        gravity = Gravity.CENTER
+        addView(picker, LinearLayout.LayoutParams(-1, 174))
+    }
+
+    private class CompactPicker(
+        context: android.content.Context,
+        private val min: Int,
+        private val max: Int,
+        initial: Int,
+        private val wrap: Boolean
+    ) : LinearLayout(context) {
+        private var selected = initial.coerceIn(min, max)
+        private var startY = 0f
+        private var lastY = 0f
+        private var moved = false
+        private val values = listOf(TextView(context), TextView(context), TextView(context))
+
+        var value: Int
+            get() = selected
+            set(newValue) { selected = newValue.coerceIn(min, max); render() }
+
+        init {
+            orientation = VERTICAL
+            gravity = Gravity.CENTER
+            values.forEach { view ->
+                view.textSize = 20f
+                view.gravity = Gravity.CENTER
+                view.setTextColor(0xff172554.toInt())
+                view.typeface = android.graphics.Typeface.create("sans", android.graphics.Typeface.NORMAL)
+                addView(view, LayoutParams(-1, 56))
+            }
+            render()
+            setOnTouchListener { _, event ->
+                when (event.action) {
+                    android.view.MotionEvent.ACTION_DOWN -> { startY = event.y; lastY = event.y; moved = false; true }
+                    android.view.MotionEvent.ACTION_MOVE -> {
+                        var distance = event.y - lastY
+                        while (kotlin.math.abs(distance) >= 28f) {
+                            change(if (distance < 0) 1 else -1)
+                            lastY += if (distance < 0) -28f else 28f
+                            distance = event.y - lastY
+                            moved = true
+                        }
+                        true
+                    }
+                    android.view.MotionEvent.ACTION_UP -> {
+                        if (!moved && kotlin.math.abs(event.y - startY) < 12f) {
+                            if (event.y < height / 3f) change(-1) else if (event.y > height * 2f / 3f) change(1)
+                        }
+                        true
+                    }
+                    else -> true
+                }
+            }
+        }
+
+        private fun change(delta: Int) {
+            val candidate = selected + delta
+            selected = when {
+                wrap && candidate > max -> min
+                wrap && candidate < min -> max
+                else -> candidate.coerceIn(min, max)
+            }
+            render()
+        }
+
+        private fun render() {
+            fun formatted(number: Int) = "%02d".format(Locale.US, number)
+            values[0].text = if (selected == min && !wrap) "" else formatted(if (selected == min) max else selected - 1)
+            values[1].text = formatted(selected)
+            values[2].text = if (selected == max && !wrap) "" else formatted(if (selected == max) min else selected + 1)
+            values.forEach { it.alpha = 1f }
+        }
+    }
+
+    private fun durationLabelsRow(): LinearLayout = LinearLayout(this).apply {
+        gravity = Gravity.CENTER
+        fun label(text: String) = TextView(this@MainActivity).apply { this.text = text; textSize = 14f; setTextColor(0xff64748b.toInt()); gravity = Gravity.CENTER }
+        addView(label(getString(R.string.hours_short)), LinearLayout.LayoutParams(0, 42, 1f))
+        addView(View(this@MainActivity), LinearLayout.LayoutParams(18, 42))
+        addView(label(getString(R.string.minutes_short)), LinearLayout.LayoutParams(0, 42, 1f))
+        addView(View(this@MainActivity), LinearLayout.LayoutParams(18, 42))
+        addView(label(getString(R.string.seconds_short)), LinearLayout.LayoutParams(0, 42, 1f))
+    }
+
+    private fun recurrenceEditorV2(initial: String, onChanged: (String) -> Unit): LinearLayout {
+        val units = arrayOf(getString(R.string.unit_days), getString(R.string.unit_weeks), getString(R.string.unit_months))
+        val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(0, 22, 0, 0) }
+        root.addView(editorHeader(getString(R.string.repeat_title)))
+        val unitPicker = Spinner(this).apply { adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, units) }
+        val count = EditText(this).apply {
+            setTextSize(15f); gravity = Gravity.CENTER; setTextColor(navy); setTypeface(null, android.graphics.Typeface.NORMAL)
+            inputType = InputType.TYPE_CLASS_NUMBER; filters = arrayOf(InputFilter.LengthFilter(2)); setSingleLine(true); setSelectAllOnFocus(true); setText("1")
+            isEnabled = true; isFocusableInTouchMode = true; minWidth = 48; minHeight = 44; setPadding(4, 0, 4, 0)
+            background = null
+        }
+        val details = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(0, 18, 0, 0) }
+        val summary = TextView(this).apply { textSize = 14f; setTextColor(0xff64748b.toInt()); setPadding(0, 10, 0, 0) }
+        root.addView(details); root.addView(summary)
+
+        val initialParts = initial.split(":")
+        val initialUnit = when {
+            initial.startsWith("WEEKLY:") -> 1
+            initial.startsWith("MONTHLY:") -> 2
+            initial.startsWith("INTERVAL:") -> when (initialParts.getOrNull(2)) { "WEEKS" -> 1; "MONTHS" -> 2; else -> 0 }
+            else -> 0
+        }
+        var amount = when {
+            initial == "DAILY" -> 1
+            initial.startsWith("WEEKLY:") || initial.startsWith("MONTHLY:") -> 1
+            initial.startsWith("INTERVAL:") -> initialParts.getOrNull(1)?.toIntOrNull()?.coerceAtLeast(1) ?: 1
+            else -> 1
+        }
+        count.setText(amount.toString())
+        fun dayChips(selectedCodes: Set<String>, onSelectionChanged: (Set<String>) -> Unit): View {
+            val codes = arrayOf("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс")
+            val labels = arrayOf(R.string.day_mon, R.string.day_tue, R.string.day_wed, R.string.day_thu, R.string.day_fri, R.string.day_sat, R.string.day_sun).map(::getString)
+            val row = LinearLayout(this).apply { gravity = Gravity.CENTER; setPadding(0, 18, 0, 8); layoutParams = LinearLayout.LayoutParams(-1, -2) }
+            lateinit var views: List<TextView>
+            views = codes.mapIndexed { index, code -> TextView(this).apply {
+                text = labels[index]; tag = code; gravity = Gravity.CENTER; textSize = 12f; isSelected = code in selectedCodes; isClickable = true
+                fun style() { setTextColor(if (isSelected) 0xffffffff.toInt() else navy); background = android.graphics.drawable.GradientDrawable().apply { shape = android.graphics.drawable.GradientDrawable.OVAL; setColor(if (isSelected) accent else 0xffe2e8f0.toInt()); setStroke(2, if (isSelected) accent else 0xffcbd5e1.toInt()) } }
+                style(); setOnClickListener { isSelected = !isSelected; style(); onSelectionChanged(views.filter { it.isSelected }.map { it.tag.toString() }.toSet()) }
+            } }
+            views.forEach { row.addView(it, LinearLayout.LayoutParams(0, 46, 1f).apply { marginStart = 3; marginEnd = 3 }) }
+            row.post {
+                val circleSize = ((row.width - 42) / 7).coerceAtLeast(40)
+                views.forEach { view ->
+                    view.layoutParams = LinearLayout.LayoutParams(circleSize, circleSize).apply { marginStart = 3; marginEnd = 3 }
+                }
+            }
+            return row
+        }
+        var monthMode = if (initial.contains(":WEEKDAY:")) 1 else 0
+        var monthDays = when {
+            initial.startsWith("MONTHLY:") -> initial.removePrefix("MONTHLY:").ifBlank { "1" }
+            initial.contains(":DATE:") -> initial.substringAfter(":DATE:").ifBlank { "1" }
+            else -> "1"
+        }
+        var weekdayPosition = initial.substringAfter(":WEEKDAY:", "FIRST").split(":").firstOrNull() ?: "FIRST"
+        var weekday = initial.substringAfterLast(":").takeIf { it in setOf("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс") } ?: "Пн"
+        fun renderDetails() {
+            details.removeAllViews()
+            val unitIndex = unitPicker.selectedItemPosition
+            if (unitIndex == 0) { summary.text = getString(R.string.repeat_interval_summary, amount, getString(R.string.unit_days)); onChanged("INTERVAL:$amount:DAYS"); return }
+            if (unitIndex == 1) {
+                val saved = if (initial.startsWith("WEEKLY:")) initial.removePrefix("WEEKLY:").split(",").toSet() else setOf("Пн")
+                details.addView(dayChips(saved) { selectedCodes -> summary.text = getString(R.string.repeat_days_summary, selectedCodes.joinToString(", ")); onChanged("INTERVAL:$amount:WEEKS:WEEKDAYS:${selectedCodes.joinToString(",")}") })
+                summary.text = getString(R.string.repeat_days_summary, saved.joinToString(", ")); onChanged("INTERVAL:$amount:WEEKS:WEEKDAYS:${saved.joinToString(",")}"); return
+            }
+            if (unitIndex == 2) {
+                val mode = RadioGroup(this).apply { orientation = RadioGroup.HORIZONTAL }
+                val numbers = RadioButton(this).apply { id = View.generateViewId(); text = getString(R.string.repeat_specific_number); isChecked = monthMode == 0 }
+                val weekdayMode = RadioButton(this).apply { id = View.generateViewId(); text = getString(R.string.repeat_weekday_mode); isChecked = monthMode == 1 }
+                mode.addView(numbers); mode.addView(weekdayMode); details.addView(mode)
+                val monthDetails = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(0, 6, 0, 0) }; details.addView(monthDetails)
+                fun renderMonthDetails() {
+                    monthMode = if (weekdayMode.isChecked) 1 else 0; monthDetails.removeAllViews()
+                    if (monthMode == 0) {
+                        val input = EditText(this).apply { hint = getString(R.string.month_days_hint); setText(monthDays); inputType = InputType.TYPE_CLASS_NUMBER }
+                        monthDetails.addView(input); input.addTextChangedListener(object : android.text.TextWatcher { override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit; override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { monthDays = s?.toString().orEmpty(); summary.text = getString(R.string.repeat_month_summary, monthDays); onChanged("INTERVAL:$amount:MONTHS:DATE:$monthDays") }; override fun afterTextChanged(s: android.text.Editable?) = Unit }); summary.text = getString(R.string.repeat_month_summary, monthDays); onChanged("INTERVAL:$amount:MONTHS:DATE:$monthDays")
+                    } else {
+                        val positionCodes = arrayOf("FIRST", "SECOND", "THIRD", "FOURTH", "LAST")
+                        val positions = arrayOf(R.string.position_first, R.string.position_second, R.string.position_third, R.string.position_fourth, R.string.position_last).map(::getString)
+                        val positionPicker = Spinner(this).apply { adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, positions); setSelection(positionCodes.indexOf(weekdayPosition).coerceAtLeast(0)) }
+                        fun refreshWeekday() { val positionIndex = positionPicker.selectedItemPosition.coerceIn(0, positionCodes.lastIndex); weekdayPosition = positionCodes[positionIndex]; summary.text = getString(R.string.repeat_weekday_summary, positions[positionIndex], getString(dayResource(weekday))); onChanged("INTERVAL:$amount:MONTHS:WEEKDAY:$weekdayPosition:$weekday") }
+                        positionPicker.onItemSelectedListener = object : AdapterView.OnItemSelectedListener { override fun onNothingSelected(parent: AdapterView<*>?) = Unit; override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) = refreshWeekday() }
+                        monthDetails.addView(positionPicker); monthDetails.addView(dayChips(setOf(weekday)) { selected -> weekday = selected.firstOrNull() ?: "Пн"; refreshWeekday() }); refreshWeekday()
+                    }
+                }
+                numbers.setOnClickListener { monthMode = 0; numbers.isChecked = true; weekdayMode.isChecked = false; renderMonthDetails() }
+                weekdayMode.setOnClickListener { monthMode = 1; numbers.isChecked = false; weekdayMode.isChecked = true; renderMonthDetails() }
+                mode.setOnCheckedChangeListener { _, checkedId ->
+                    if (checkedId == numbers.id) monthMode = 0
+                    if (checkedId == weekdayMode.id) monthMode = 1
+                }
+                renderMonthDetails(); return
+            }
+        }
+        val frequencyRow = LinearLayout(this).apply {
+            gravity = Gravity.CENTER_VERTICAL
+            addView(TextView(this@MainActivity).apply { text = getString(R.string.repeat_every_short); textSize = 16f; setTextColor(navy) }, LinearLayout.LayoutParams(-2, 52))
+            val countField = FrameLayout(this@MainActivity).apply {
+                addView(count, FrameLayout.LayoutParams(-1, 52))
+                addView(View(this@MainActivity).apply { setBackgroundColor(0xff94a3b8.toInt()) }, FrameLayout.LayoutParams(-1, 1, Gravity.BOTTOM))
+            }
+            addView(countField, LinearLayout.LayoutParams(58, 52).apply { marginStart = 8 })
+            addView(unitPicker, LinearLayout.LayoutParams(0, 52, 1f).apply { marginStart = 10 })
+        }
+        root.addView(frequencyRow, 1)
+        unitPicker.setSelection(initialUnit)
+        count.setText(amount.toString())
+        count.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { amount = s?.toString()?.toIntOrNull()?.coerceIn(1, 99) ?: 1; renderDetails() }
+            override fun afterTextChanged(s: android.text.Editable?) = Unit
+        })
+        unitPicker.onItemSelectedListener = object : AdapterView.OnItemSelectedListener { override fun onNothingSelected(parent: AdapterView<*>?) = Unit; override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) = renderDetails() }; unitPicker.post { renderDetails() }
+        return root
+    }
+
+    private fun dayResource(code: String): Int = mapOf("Пн" to R.string.day_mon, "Вт" to R.string.day_tue, "Ср" to R.string.day_wed, "Чт" to R.string.day_thu, "Пт" to R.string.day_fri, "Сб" to R.string.day_sat, "Вс" to R.string.day_sun)[code] ?: R.string.day_mon
+
+    private fun recurrenceEditor(initial: String, onChanged: (String) -> Unit): LinearLayout {
+        val types = arrayOf(R.string.repeat_none, R.string.repeat_daily, R.string.repeat_weekly, R.string.repeat_monthly, R.string.repeat_interval).map(::getString).toTypedArray()
+        val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(0, 16, 0, 0) }
+        root.addView(TextView(this).apply { text = getString(R.string.repeat_title); textSize = 13f; setTextColor(0xff64748b.toInt()) })
+        val type = Spinner(this).apply { adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, types) }
+        val options = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(0, 8, 0, 0) }
+        val summary = TextView(this).apply { textSize = 14f; setTextColor(0xff64748b.toInt()); setPadding(0, 8, 0, 0) }
+        root.addView(type); root.addView(options); root.addView(summary)
+        val initialPosition = when {
+            initial == "DAILY" -> 1
+            initial.startsWith("WEEKLY:") -> 2
+            initial.startsWith("MONTHLY:") -> 3
+            initial.startsWith("INTERVAL:") -> 4
+            else -> 0
+        }
+        var encoded = initial
+        fun update(value: String, text: String) { encoded = value; summary.text = text; onChanged(encoded) }
+        fun refresh() {
+            options.removeAllViews()
+            when (type.selectedItemPosition) {
+                1 -> update("DAILY", getString(R.string.repeat_daily_summary))
+                2 -> {
+                    val codes = arrayOf("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс")
+                    val labels = arrayOf(R.string.day_mon, R.string.day_tue, R.string.day_wed, R.string.day_thu, R.string.day_fri, R.string.day_sat, R.string.day_sun).map(::getString)
+                    val saved = initial.removePrefix("WEEKLY:").split(",").filter(String::isNotBlank).toSet()
+                    lateinit var refreshWeek: () -> Unit
+                    val checks = labels.mapIndexed { index, label ->
+                        TextView(this).apply {
+                            text = label; tag = codes[index]; gravity = Gravity.CENTER; textSize = 12f; isClickable = true; isFocusable = true
+                            isSelected = if (saved.isEmpty()) codes[index] in setOf("Пн", "Ср", "Пт") else codes[index] in saved
+                            minimumWidth = 42; minimumHeight = 42; setPadding(0, 0, 0, 0)
+                            fun style() {
+                                setTextColor(if (isSelected) 0xffffffff.toInt() else navy)
+                                background = android.graphics.drawable.GradientDrawable().apply {
+                                    shape = android.graphics.drawable.GradientDrawable.OVAL
+                                    setColor(if (isSelected) accent else 0xffe2e8f0.toInt())
+                                    setStroke(2, if (isSelected) accent else 0xffcbd5e1.toInt())
+                                }
+                            }
+                            style()
+                            setOnClickListener { isSelected = !isSelected; style(); refreshWeek() }
+                        }
+                    }
+                    val row = LinearLayout(this).apply { gravity = Gravity.CENTER; setPadding(0, 4, 0, 4) }
+                    checks.forEach { row.addView(it, LinearLayout.LayoutParams(0, 48, 1f).apply { marginEnd = 5 }) }; options.addView(row)
+                    refreshWeek = { val days = checks.filter { it.isSelected }.map { it.tag.toString() }; val visibleDays = checks.filter { it.isSelected }.map { it.text }; update("WEEKLY:${days.joinToString(",")}", getString(R.string.repeat_days_summary, visibleDays.joinToString(", "))) }
+                    refreshWeek()
+                }
+                3 -> {
+                    val value = EditText(this).apply { hint = getString(R.string.month_days_hint); inputType = InputType.TYPE_CLASS_NUMBER; setText(initial.removePrefix("MONTHLY:").ifBlank { "1" }) }
+                    options.addView(value)
+                    fun refreshMonth() { val days = value.text.toString().ifBlank { "1" }; update("MONTHLY:$days", getString(R.string.repeat_month_summary, days)) }
+                    value.addTextChangedListener(object : android.text.TextWatcher { override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit; override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = refreshMonth(); override fun afterTextChanged(s: android.text.Editable?) = Unit }); refreshMonth()
+                }
+                4 -> {
+                    val parts = initial.split(":")
+                    val count = EditText(this).apply { hint = getString(R.string.repeat_count); inputType = InputType.TYPE_CLASS_NUMBER; setText(parts.getOrNull(1) ?: "3") }
+                    val units = Spinner(this).apply { adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, arrayOf(R.string.unit_days, R.string.unit_weeks, R.string.unit_months).map(::getString)) }
+                    val row = LinearLayout(this); row.addView(count, LinearLayout.LayoutParams(0, -2, 1f)); row.addView(units, LinearLayout.LayoutParams(0, -2, 1f)); options.addView(row)
+                    fun refreshInterval() { val n = count.text.toString().ifBlank { "1" }; val unit = when (units.selectedItemPosition) { 1 -> "WEEKS"; 2 -> "MONTHS"; else -> "DAYS" }; update("INTERVAL:$n:$unit", getString(R.string.repeat_interval_summary, n, units.selectedItem)) }
+                    count.addTextChangedListener(object : android.text.TextWatcher { override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit; override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = refreshInterval(); override fun afterTextChanged(s: android.text.Editable?) = Unit }); units.onItemSelectedListener = object : AdapterView.OnItemSelectedListener { override fun onNothingSelected(parent: AdapterView<*>?) = Unit; override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) = refreshInterval() }; refreshInterval()
+                }
+                else -> update("NONE", getString(R.string.repeat_none_summary))
+            }
+        }
+        type.setSelection(initialPosition)
+        type.onItemSelectedListener = object : AdapterView.OnItemSelectedListener { override fun onNothingSelected(parent: AdapterView<*>?) = Unit; override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) = refresh() }
+        type.post { refresh() }
+        return root
     }
 
     private fun editChainDialog(chain: Chain) {
@@ -484,8 +908,22 @@ class MainActivity : AppCompatActivity() {
         AlertDialog.Builder(this).setTitle("Повторение").setView(root).setNegativeButton("Отмена", null).setPositiveButton("Готово") { _, _ -> onSelected(encoded, summary.text.toString()) }.show()
     }
 
-    private fun displayRecurrence(rule: String) = when {
-        rule == "NONE" -> "Не повторяется"; rule == "DAILY" -> "Каждый день"; rule.startsWith("WEEKLY:") -> "Дни: ${rule.removePrefix("WEEKLY:").replace(",", ", ")}"; rule.startsWith("MONTHLY:") -> "Числа: ${rule.removePrefix("MONTHLY:")}"; rule.startsWith("INTERVAL:") -> "Интервал: ${rule.removePrefix("INTERVAL:").replace(":", " ")}"; else -> rule
+    private fun displayRecurrence(rule: String): String = when {
+        rule == "NONE" -> getString(R.string.repeat_none_summary)
+        rule == "DAILY" -> getString(R.string.repeat_daily_summary)
+        rule.startsWith("WEEKLY:") -> {
+            val labels = rule.removePrefix("WEEKLY:").split(",").filter(String::isNotBlank).map { code ->
+                getString(mapOf("Пн" to R.string.day_mon, "Вт" to R.string.day_tue, "Ср" to R.string.day_wed, "Чт" to R.string.day_thu, "Пт" to R.string.day_fri, "Сб" to R.string.day_sat, "Вс" to R.string.day_sun)[code] ?: R.string.day_mon)
+            }
+            getString(R.string.repeat_days_summary, labels.joinToString(", "))
+        }
+        rule.startsWith("MONTHLY:") -> getString(R.string.repeat_month_summary, rule.removePrefix("MONTHLY:"))
+        rule.startsWith("INTERVAL:") -> {
+            val parts = rule.split(":")
+            val unit = when (parts.getOrNull(2)) { "WEEKS" -> R.string.unit_weeks; "MONTHS" -> R.string.unit_months; else -> R.string.unit_days }
+            getString(R.string.repeat_interval_summary, parts.getOrNull(1) ?: "1", getString(unit))
+        }
+        else -> rule
     }
 
     private fun formatDuration(seconds: Long) = "%02d:%02d".format(Locale.US, seconds / 60, seconds % 60)

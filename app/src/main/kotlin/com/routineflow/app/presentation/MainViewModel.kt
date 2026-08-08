@@ -58,6 +58,20 @@ class MainViewModel @Inject constructor(
     }
 
     fun deleteAction(chainId: Long, actionId: Long) = update { chains -> chains.map { if (it.id == chainId) it.copy(actions = it.actions.filterNot { action -> action.id == actionId }) else it } }
+    fun moveAction(chainId: Long, fromActionId: Long, toActionId: Long) = update { chains ->
+        chains.map { chain ->
+            if (chain.id != chainId || fromActionId == toActionId) chain else {
+                val reordered = chain.actions.toMutableList()
+                val fromIndex = reordered.indexOfFirst { it.id == fromActionId }
+                val toIndex = reordered.indexOfFirst { it.id == toActionId }
+                if (fromIndex < 0 || toIndex < 0) chain else {
+                    val moved = reordered.removeAt(fromIndex)
+                    reordered.add(reordered.indexOfFirst { it.id == toActionId }.coerceAtLeast(0), moved)
+                    chain.copy(actions = reordered)
+                }
+            }
+        }
+    }
     fun deleteChain(chainId: Long) = update { chains -> chains.filterNot { it.id == chainId } }
     fun isDue(action: Action) = getTodayActions.isDue(action)
 

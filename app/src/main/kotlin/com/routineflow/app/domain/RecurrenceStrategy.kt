@@ -18,11 +18,39 @@ private class MonthlyStrategy(private val days: Set<Int>) : RecurrenceStrategy {
     override fun isDue(action: Action, day: Calendar): Boolean = day.get(Calendar.DAY_OF_MONTH) in days
 }
 
-private class IntervalStrategy(private val count: Long, private val unit: String) : RecurrenceStrategy {
+private class IntervalStrategy(private val count: Long, private val unit: String, private val extra: List<String> = emptyList()) : RecurrenceStrategy {
     override fun isDue(action: Action, day: Calendar): Boolean {
-        val period = when (unit) { "WEEKS" -> count * 7; "MONTHS" -> count * 30; else -> count }.coerceAtLeast(1)
-        return (day.timeInMillis / 86_400_000L) % period == 0L
+        val step = count.coerceAtLeast(1)
+        return when (unit) {
+            "WEEKS" -> {
+                val weekNumber = day.get(Calendar.WEEK_OF_YEAR).toLong()
+                val matchesDay = if (extra.firstOrNull() == "WEEKDAYS") dayName(day) in extra.drop(1) else true
+                weekNumber % step == 0L && matchesDay
+            }
+            "MONTHS" -> {
+                val monthIndex = day.get(Calendar.YEAR) * 12L + day.get(Calendar.MONTH)
+                if (monthIndex % step != 0L) false else when (extra.firstOrNull()) {
+                    "DATE" -> day.get(Calendar.DAY_OF_MONTH).toString() in extra.drop(1).flatMap { it.split(",") }
+                    "WEEKDAY" -> isNthWeekday(day, extra.getOrNull(1), extra.getOrNull(2))
+                    else -> true
+                }
+            }
+            "YEARS" -> day.get(Calendar.YEAR).toLong() % step == 0L
+            else -> (day.timeInMillis / 86_400_000L) % step == 0L
+        }
     }
+}
+
+private fun isNthWeekday(day: Calendar, position: String?, code: String?): Boolean {
+    if (dayName(day) != code) return false
+    val occurrence = (day.get(Calendar.DAY_OF_MONTH) - 1) / 7 + 1
+    if (position == "LAST") {
+        val next = day.clone() as Calendar
+        next.add(Calendar.DAY_OF_MONTH, 7)
+        return next.get(Calendar.MONTH) != day.get(Calendar.MONTH)
+    }
+    val expected = when (position) { "SECOND" -> 2; "THIRD" -> 3; "FOURTH" -> 4; else -> 1 }
+    return occurrence == expected
 }
 
 object RecurrenceStrategyFactory {
@@ -33,7 +61,7 @@ object RecurrenceStrategyFactory {
         rule == "Каждые 2 дня" -> LegacyIntervalStrategy
         rule.startsWith("WEEKLY:") -> WeeklyStrategy(rule.removePrefix("WEEKLY:").split(",").filter(String::isNotBlank).toSet())
         rule.startsWith("MONTHLY:") -> MonthlyStrategy(rule.removePrefix("MONTHLY:").split(",").mapNotNull(String::toIntOrNull).toSet())
-        rule.startsWith("INTERVAL:") -> rule.split(":").let { IntervalStrategy(it.getOrNull(1)?.toLongOrNull() ?: 1, it.getOrNull(2) ?: "DAYS") }
+        rule.startsWith("INTERVAL:") -> rule.split(":").let { IntervalStrategy(it.getOrNull(1)?.toLongOrNull() ?: 1, it.getOrNull(2) ?: "DAYS", it.drop(3)) }
         rule.startsWith("Дни: ") -> WeeklyStrategy(rule.removePrefix("Дни: ").split(", ").toSet())
         else -> NoneStrategy
     }
