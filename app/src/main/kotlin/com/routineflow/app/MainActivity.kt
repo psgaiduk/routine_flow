@@ -734,8 +734,8 @@ class MainActivity : AppCompatActivity() {
             if (unitIndex == 0) { summary.text = getString(R.string.repeat_interval_summary, amount, getString(R.string.unit_days)); onChanged("INTERVAL:$amount:DAYS"); return }
             if (unitIndex == 1) {
                 val saved = if (initial.startsWith("WEEKLY:")) initial.removePrefix("WEEKLY:").split(",").toSet() else setOf("Пн")
-                details.addView(dayChips(saved) { selectedCodes -> summary.text = getString(R.string.repeat_days_summary, selectedCodes.joinToString(", ")); onChanged("INTERVAL:$amount:WEEKS:WEEKDAYS:${selectedCodes.joinToString(",")}") })
-                summary.text = getString(R.string.repeat_days_summary, saved.joinToString(", ")); onChanged("INTERVAL:$amount:WEEKS:WEEKDAYS:${saved.joinToString(",")}"); return
+                details.addView(dayChips(saved) { selectedCodes -> summary.text = getString(R.string.repeat_days_summary, localizedDays(selectedCodes)); onChanged("INTERVAL:$amount:WEEKS:WEEKDAYS:${selectedCodes.joinToString(",")}") })
+                summary.text = getString(R.string.repeat_days_summary, localizedDays(saved)); onChanged("INTERVAL:$amount:WEEKS:WEEKDAYS:${saved.joinToString(",")}"); return
             }
             if (unitIndex == 2) {
                 val mode = RadioGroup(this).apply { orientation = RadioGroup.HORIZONTAL }
@@ -789,6 +789,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun dayResource(code: String): Int = mapOf("Пн" to R.string.day_mon, "Вт" to R.string.day_tue, "Ср" to R.string.day_wed, "Чт" to R.string.day_thu, "Пт" to R.string.day_fri, "Сб" to R.string.day_sat, "Вс" to R.string.day_sun)[code] ?: R.string.day_mon
+
+    private fun localizedDays(codes: Collection<String>): String = codes.joinToString(", ") { getString(dayResource(it)) }
 
     private fun recurrenceEditor(initial: String, onChanged: (String) -> Unit): LinearLayout {
         val types = arrayOf(R.string.repeat_none, R.string.repeat_daily, R.string.repeat_weekly, R.string.repeat_monthly, R.string.repeat_interval).map(::getString).toTypedArray()
