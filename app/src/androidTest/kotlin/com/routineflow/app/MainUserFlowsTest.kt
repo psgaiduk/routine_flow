@@ -1,5 +1,6 @@
 package com.routineflow.app
 
+import android.graphics.Rect
 import android.os.SystemClock
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso.onView
@@ -96,6 +97,29 @@ class MainUserFlowsTest {
         SystemClock.sleep(1_200)
 
         onView(withText(R.string.running_back_step)).check(matches(isDisplayed()))
+    }
+
+    @Test
+    fun timerCardHasGapBeforeResetButton() {
+        val chain = "UI spacing chain $suffix"
+        val action = "UI spacing action $suffix"
+        createChain(chain)
+        addAction(chain, action)
+        onView(withText(R.string.tab_run)).perform(click())
+        onView(withText(chain)).perform(click())
+        onView(withText(R.string.run_start)).perform(click())
+
+        onView(withTagValue(`is`("running_reset_button"))).check { resetButton, _ ->
+            val timerCard = resetButton.rootView.findViewWithTag<android.view.View>("running_current_card")
+            check(timerCard != null) { "Running timer card is missing" }
+            val cardBounds = Rect()
+            val resetBounds = Rect()
+            timerCard.getGlobalVisibleRect(cardBounds)
+            resetButton.getGlobalVisibleRect(resetBounds)
+            check(resetBounds.top - cardBounds.bottom >= 8) {
+                "Expected at least 8 px gap, got ${resetBounds.top - cardBounds.bottom}"
+            }
+        }
     }
 
     private fun openChains() {
