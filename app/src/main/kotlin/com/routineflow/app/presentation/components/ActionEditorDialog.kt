@@ -30,15 +30,15 @@ class ActionEditorDialog(
         val hours = CompactPicker(context, 0, 2, (duration / 3600).coerceAtMost(2), true, textColor)
         val minutes = CompactPicker(context, 0, 59, (duration % 3600) / 60, true, textColor)
         val seconds = CompactPicker(context, 0, 59, duration % 60, true, textColor)
-        fun column(picker: CompactPicker) = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER; addView(picker, LinearLayout.LayoutParams(-1, 222)) }
+        fun column(picker: CompactPicker) = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER; addView(picker, LinearLayout.LayoutParams(-1, 244)) }
         val row = LinearLayout(context).apply { gravity = Gravity.CENTER_VERTICAL }
-        row.addView(column(hours), LinearLayout.LayoutParams(0, 238, 1f).apply { marginEnd = 8 })
-        row.addView(separator(), LinearLayout.LayoutParams(18, 238))
-        row.addView(column(minutes), LinearLayout.LayoutParams(0, 238, 1f).apply { marginStart = 8; marginEnd = 8 })
-        row.addView(separator(), LinearLayout.LayoutParams(18, 238))
-        row.addView(column(seconds), LinearLayout.LayoutParams(0, 238, 1f).apply { marginStart = 8 })
+        row.addView(column(hours), LinearLayout.LayoutParams(0, 260, 1f).apply { marginEnd = 8 })
+        row.addView(separator(), LinearLayout.LayoutParams(18, 260))
+        row.addView(column(minutes), LinearLayout.LayoutParams(0, 260, 1f).apply { marginStart = 8; marginEnd = 8 })
+        row.addView(separator(), LinearLayout.LayoutParams(18, 260))
+        row.addView(column(seconds), LinearLayout.LayoutParams(0, 260, 1f).apply { marginStart = 8 })
         val durationSection = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL; setPadding(12, 10, 12, 12); background = android.graphics.drawable.GradientDrawable().apply { cornerRadius = 18f; setColor(inputSurfaceColor); setStroke(1, borderColor) } }
-        durationSection.addView(row, LinearLayout.LayoutParams(-1, 238))
+        durationSection.addView(row, LinearLayout.LayoutParams(-1, 260))
         box.addView(header(context.getString(R.string.duration_label)))
         box.addView(durationSection, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = 8 })
         box.addView(labels(), LinearLayout.LayoutParams(-1, 42).apply { bottomMargin = 18 })

@@ -38,12 +38,15 @@ class CompactPicker(
             view.textSize = 20f
             view.gravity = Gravity.CENTER
             view.setPadding(0, 0, 0, 0)
+            view.includeFontPadding = true
             view.setTextColor(textColor)
             view.typeface = Typeface.create("sans", Typeface.NORMAL)
-            addView(view, LayoutParams(-1, 72))
+            addView(view, LayoutParams(-1, if (view === values[0]) 60 else 72))
         }
         values[1].textSize = 26f
-        values[1].translationY = -10f
+        values[1].setPadding(0, 0, 0, 8)
+        values[1].layoutParams = LayoutParams(-1, 84)
+        values[1].translationY = 0f
         render()
         setOnTouchListener { _, event ->
             when (event.action) {
