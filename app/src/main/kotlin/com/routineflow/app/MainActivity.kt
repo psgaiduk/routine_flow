@@ -701,15 +701,32 @@ class MainActivity : AppCompatActivity() {
             else -> 1
         }
         count.setText(amount.toString())
-        fun dayChips(selectedCodes: Set<String>, onSelectionChanged: (Set<String>) -> Unit): View {
+        fun dayChips(selectedCodes: Set<String>, onSelectionChanged: (Set<String>) -> Unit, singleSelection: Boolean = false): View {
             val codes = arrayOf("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс")
             val labels = arrayOf(R.string.day_mon, R.string.day_tue, R.string.day_wed, R.string.day_thu, R.string.day_fri, R.string.day_sat, R.string.day_sun).map(::getString)
             val row = LinearLayout(this).apply { gravity = Gravity.CENTER; setPadding(0, 18, 0, 8); layoutParams = LinearLayout.LayoutParams(-1, -2) }
             lateinit var views: List<TextView>
+            fun style(view: TextView) {
+                view.setTextColor(if (view.isSelected) 0xffffffff.toInt() else navy)
+                view.background = android.graphics.drawable.GradientDrawable().apply {
+                    shape = android.graphics.drawable.GradientDrawable.OVAL
+                    setColor(if (view.isSelected) accent else 0xffe2e8f0.toInt())
+                    setStroke(2, if (view.isSelected) accent else 0xffcbd5e1.toInt())
+                }
+            }
             views = codes.mapIndexed { index, code -> TextView(this).apply {
                 text = labels[index]; tag = code; gravity = Gravity.CENTER; textSize = 12f; isSelected = code in selectedCodes; isClickable = true
-                fun style() { setTextColor(if (isSelected) 0xffffffff.toInt() else navy); background = android.graphics.drawable.GradientDrawable().apply { shape = android.graphics.drawable.GradientDrawable.OVAL; setColor(if (isSelected) accent else 0xffe2e8f0.toInt()); setStroke(2, if (isSelected) accent else 0xffcbd5e1.toInt()) } }
-                style(); setOnClickListener { isSelected = !isSelected; style(); onSelectionChanged(views.filter { it.isSelected }.map { it.tag.toString() }.toSet()) }
+                style(this); setOnClickListener {
+                    if (singleSelection) {
+                        if (isSelected) return@setOnClickListener
+                        views.forEach { it.isSelected = false; style(it) }
+                        isSelected = true
+                    } else {
+                        isSelected = !isSelected
+                    }
+                    style(this)
+                    onSelectionChanged(views.filter { it.isSelected }.map { it.tag.toString() }.toSet())
+                }
             } }
             views.forEach { row.addView(it, LinearLayout.LayoutParams(0, 46, 1f).apply { marginStart = 3; marginEnd = 3 }) }
             row.post {
@@ -734,7 +751,7 @@ class MainActivity : AppCompatActivity() {
             if (unitIndex == 0) { summary.text = getString(R.string.repeat_interval_summary, amount, getString(R.string.unit_days)); onChanged("INTERVAL:$amount:DAYS"); return }
             if (unitIndex == 1) {
                 val saved = if (initial.startsWith("WEEKLY:")) initial.removePrefix("WEEKLY:").split(",").toSet() else setOf("Пн")
-                details.addView(dayChips(saved) { selectedCodes -> summary.text = getString(R.string.repeat_days_summary, localizedDays(selectedCodes)); onChanged("INTERVAL:$amount:WEEKS:WEEKDAYS:${selectedCodes.joinToString(",")}") })
+                details.addView(dayChips(saved, onSelectionChanged = { selectedCodes -> summary.text = getString(R.string.repeat_days_summary, localizedDays(selectedCodes)); onChanged("INTERVAL:$amount:WEEKS:WEEKDAYS:${selectedCodes.joinToString(",")}") }))
                 summary.text = getString(R.string.repeat_days_summary, localizedDays(saved)); onChanged("INTERVAL:$amount:WEEKS:WEEKDAYS:${saved.joinToString(",")}"); return
             }
             if (unitIndex == 2) {
@@ -754,7 +771,7 @@ class MainActivity : AppCompatActivity() {
                         val positionPicker = Spinner(this).apply { adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, positions); setSelection(positionCodes.indexOf(weekdayPosition).coerceAtLeast(0)) }
                         fun refreshWeekday() { val positionIndex = positionPicker.selectedItemPosition.coerceIn(0, positionCodes.lastIndex); weekdayPosition = positionCodes[positionIndex]; summary.text = getString(R.string.repeat_weekday_summary, positions[positionIndex], getString(dayResource(weekday))); onChanged("INTERVAL:$amount:MONTHS:WEEKDAY:$weekdayPosition:$weekday") }
                         positionPicker.onItemSelectedListener = object : AdapterView.OnItemSelectedListener { override fun onNothingSelected(parent: AdapterView<*>?) = Unit; override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) = refreshWeekday() }
-                        monthDetails.addView(positionPicker); monthDetails.addView(dayChips(setOf(weekday)) { selected -> weekday = selected.firstOrNull() ?: "Пн"; refreshWeekday() }); refreshWeekday()
+                        monthDetails.addView(positionPicker); monthDetails.addView(dayChips(setOf(weekday), { selected -> weekday = selected.firstOrNull() ?: "Пн"; refreshWeekday() }, singleSelection = true)); refreshWeekday()
                     }
                 }
                 numbers.setOnClickListener { monthMode = 0; numbers.isChecked = true; weekdayMode.isChecked = false; renderMonthDetails() }
