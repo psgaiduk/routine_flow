@@ -153,15 +153,28 @@ class MainActivity : AppCompatActivity() {
 
         fun addChainCard(chain: Chain) {
             val dueActions = chain.actions.filter { viewModel.isDue(it) }
-            val row = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(4, 12, 4, 12) }
-            row.addView(TextView(this).apply { text = getString(R.string.run_chain_meta, formatDuration(dueActions.sumOf { it.durationSeconds }.toLong()), dueActions.size); textSize = 13f; setTextColor(secondaryText) })
+            val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(4, 12, 4, 12) }
+            val details = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+            details.addView(TextView(this).apply { text = getString(R.string.run_chain_meta, formatDuration(dueActions.sumOf { it.durationSeconds }.toLong()), dueActions.size); textSize = 13f; setTextColor(secondaryText) })
             val name = TextView(this).apply { text = chain.name; textSize = 20f; setTypeface(typeface, android.graphics.Typeface.BOLD); setTextColor(navy); setPadding(0, 4, 0, 0) }
-            row.addView(name)
+            details.addView(name)
+            row.addView(details, LinearLayout.LayoutParams(0, -2, 1f))
             val open = {
                 executionChainId = chain.id
                 viewModel.stopAction()
                 showChainExecution(state.copy(running = null), chain)
             }
+            row.addView(ImageButton(this).apply {
+                setImageResource(android.R.drawable.ic_media_play)
+                imageTintList = ColorStateList.valueOf(accent)
+                contentDescription = getString(R.string.quick_start)
+                background = null
+                setPadding(12, 12, 4, 12)
+                setOnClickListener {
+                    executionChainId = chain.id
+                    viewModel.startChain(chain.id)
+                }
+            }, LinearLayout.LayoutParams(58, 58).apply { marginStart = 12 })
             row.setOnClickListener { open() }; name.setOnClickListener { open() }
             root.addView(card(row).apply {
                 radius = 22f; strokeWidth = 2; strokeColor = border; isClickable = true; isFocusable = true

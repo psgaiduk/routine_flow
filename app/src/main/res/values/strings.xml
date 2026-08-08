@@ -20,6 +20,7 @@
     <string name="run_progress">%1$s\nВыполнено: %2$d из %3$d</string>
     <string name="run_done">✓ Готово</string>
     <string name="run_start">Запустить</string>
+    <string name="quick_start">Быстрый запуск</string>
     <string name="run_back">Назад</string>
     <string name="notification_channel_name">Окончание времени</string>
     <string name="notification_channel_description">Напоминания о превышении времени действия</string>

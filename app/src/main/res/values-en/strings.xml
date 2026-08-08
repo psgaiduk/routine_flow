@@ -20,6 +20,7 @@
     <string name="run_progress">%1$s\nCompleted: %2$d of %3$d</string>
     <string name="run_done">✓ Done</string>
     <string name="run_start">Start</string>
+    <string name="quick_start">Quick start</string>
     <string name="run_back">Back</string>
     <string name="notification_channel_name">Time exceeded</string>
     <string name="notification_channel_description">Reminders when an action exceeds its planned duration</string>
