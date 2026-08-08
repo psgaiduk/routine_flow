@@ -4,6 +4,8 @@
         android:name="com.routineflow.app.App"
         android:theme="@style/AppTheme"
         android:label="Routine Flow"
+        android:icon="@drawable/ic_app_icon"
+        android:roundIcon="@drawable/ic_app_icon"
         android:allowBackup="true">
         <activity android:name="com.routineflow.app.MainActivity" android:exported="true">
             <intent-filter>
