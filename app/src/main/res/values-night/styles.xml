@@ -1,0 +1,26 @@
+<resources>
+    <style name="AppTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="colorPrimary">#818CF8</item>
+        <item name="colorPrimaryVariant">#6366F1</item>
+        <item name="colorAccent">#818CF8</item>
+        <item name="colorSurface">#1E293B</item>
+        <item name="colorOnSurface">#E2E8F0</item>
+        <item name="android:colorBackground">#0F172A</item>
+        <item name="colorControlActivated">#818CF8</item>
+        <item name="colorControlNormal">#94A3B8</item>
+        <item name="android:colorAccent">#818CF8</item>
+        <item name="android:windowBackground">#0F172A</item>
+        <item name="android:navigationBarColor">#0F172A</item>
+        <item name="android:statusBarColor">#0F172A</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+
+    <style name="RoutineFlowInputLabel">
+        <item name="android:textSize">16sp</item>
+        <item name="android:textColor">#E2E8F0</item>
+        <item name="android:fontFamily">sans</item>
+        <item name="android:textStyle">normal</item>
+    </style>
+</resources>

@@ -41,17 +41,17 @@ class MainActivity : AppCompatActivity() {
     private var currentTab = Tab.RUN
     private var executionChainId: Long? = null
     private val dateKey get() = RoutineDay.currentDateKey()
-    private val isDarkTheme = false
-    private val navy = if (isDarkTheme) 0xffe2e8f0.toInt() else 0xff172554.toInt()
+    private val isDarkTheme by lazy { (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES }
+    private val navy by lazy { if (isDarkTheme) 0xffe2e8f0.toInt() else 0xff172554.toInt() }
     private val accent = 0xff4f46e5.toInt()
-    private val pageBackground = if (isDarkTheme) 0xff0f172a.toInt() else 0xfff8fafc.toInt()
-    private val surface = if (isDarkTheme) 0xff1e293b.toInt() else 0xffffffff.toInt()
-    private val softSurface = if (isDarkTheme) 0xff273449.toInt() else 0xffe2e8f0.toInt()
-    private val inputSurface = if (isDarkTheme) 0xff172236.toInt() else 0xfff8fafc.toInt()
-    private val border = if (isDarkTheme) 0xff475569.toInt() else 0xffcbd5e1.toInt()
-    private val secondaryText = if (isDarkTheme) 0xffcbd5e1.toInt() else 0xff64748b.toInt()
-    private val darkText = if (isDarkTheme) 0xffe2e8f0.toInt() else 0xff334155.toInt()
-    private val inputLine = if (isDarkTheme) 0xff94a3b8.toInt() else 0xff94a3b8.toInt()
+    private val pageBackground by lazy { if (isDarkTheme) 0xff0f172a.toInt() else 0xfff8fafc.toInt() }
+    private val surface by lazy { if (isDarkTheme) 0xff1e293b.toInt() else 0xffffffff.toInt() }
+    private val softSurface by lazy { if (isDarkTheme) 0xff273449.toInt() else 0xffe2e8f0.toInt() }
+    private val inputSurface by lazy { if (isDarkTheme) 0xff172236.toInt() else 0xfff8fafc.toInt() }
+    private val border by lazy { if (isDarkTheme) 0xff475569.toInt() else 0xffcbd5e1.toInt() }
+    private val secondaryText by lazy { if (isDarkTheme) 0xffcbd5e1.toInt() else 0xff64748b.toInt() }
+    private val darkText by lazy { if (isDarkTheme) 0xffe2e8f0.toInt() else 0xff334155.toInt() }
+    private val inputLine by lazy { if (isDarkTheme) 0xff94a3b8.toInt() else 0xff94a3b8.toInt() }
     private var activeRunRoot: View? = null
     private var activeRunChainId: Long? = null
     private var activeRunActionId: Long? = null
@@ -116,15 +116,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun secondaryButton(text: String, onClick: () -> Unit) = MaterialButton(this).apply {
-        this.text = text; isAllCaps = false; cornerRadius = 18; setTextSize(20f); setTextColor(0xff334155.toInt())
-        backgroundTintList = ColorStateList.valueOf(0xffe2e8f0.toInt()); insetTop = 6; insetBottom = 6
+        this.text = text; isAllCaps = false; cornerRadius = 18; setTextSize(20f); setTextColor(darkText)
+        backgroundTintList = ColorStateList.valueOf(softSurface); insetTop = 6; insetBottom = 6
         setOnClickListener { onClick() }
     }
 
     private fun bottomActionButton(text: String, primary: Boolean, textSizeSp: Float = 14f, onClick: () -> Unit) = MaterialButton(this).apply {
         this.text = text; isAllCaps = false; cornerRadius = 8; setTextSize(textSizeSp); gravity = Gravity.CENTER; insetTop = 0; insetBottom = 0; minHeight = 144; elevation = 0f; stateListAnimator = null
-        backgroundTintList = ColorStateList.valueOf(if (primary) accent else 0xffe2e8f0.toInt())
-        setTextColor(if (primary) 0xffffffff.toInt() else 0xff334155.toInt())
+        backgroundTintList = ColorStateList.valueOf(if (primary) accent else softSurface)
+        setTextColor(if (primary) 0xffffffff.toInt() else darkText)
         setOnClickListener { onClick() }
     }
 
@@ -187,7 +187,7 @@ class MainActivity : AppCompatActivity() {
         val end = now.clone() as java.util.Calendar
         end.timeInMillis += totalSeconds * 1000L
         val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-        root.addView(TextView(this).apply { text = getString(R.string.run_time_range, timeFormat.format(now.time), timeFormat.format(end.time)); textSize = 15f; setTextColor(0xff64748b.toInt()); setPadding(0, 0, 0, 20) })
+        root.addView(TextView(this).apply { text = getString(R.string.run_time_range, timeFormat.format(now.time), timeFormat.format(end.time)); textSize = 15f; setTextColor(secondaryText); setPadding(0, 0, 0, 20) })
         val allCompleted = actions.isNotEmpty() && actions.all { it.doneOn == dateKey }
         actions.forEachIndexed { index, action ->
             val completed = action.doneOn == dateKey
@@ -220,7 +220,7 @@ class MainActivity : AppCompatActivity() {
             bottom.addView(bottomActionButton(getString(R.string.run_back), false, 16f, ::goBack), LinearLayout.LayoutParams(-1, 150))
         } else {
             val close = TextView(this).apply {
-                text = "✕"; textSize = 14f; gravity = Gravity.CENTER; setTextColor(0xff334155.toInt()); isClickable = true
+                text = "✕"; textSize = 14f; gravity = Gravity.CENTER; setTextColor(darkText); isClickable = true
                 background = android.graphics.drawable.GradientDrawable().apply { cornerRadius = 8f; setColor(softSurface) }
                 setOnClickListener { goBack() }
             }
@@ -254,7 +254,7 @@ class MainActivity : AppCompatActivity() {
         val root = base(chain.name)
         val remainingCount = actions.count { it.doneOn != dateKey }
         val header = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL; setPadding(0, 0, 0, 12) }
-        header.addView(TextView(this).apply { text = getString(R.string.running_remaining, remainingCount); textSize = 14f; setTextColor(0xff64748b.toInt()) }, LinearLayout.LayoutParams(0, -2, 1f))
+        header.addView(TextView(this).apply { text = getString(R.string.running_remaining, remainingCount); textSize = 14f; setTextColor(secondaryText) }, LinearLayout.LayoutParams(0, -2, 1f))
         actions.forEach { step ->
             val color = when {
                 step.doneOn == dateKey && step.executionStatus == "SKIPPED" -> 0xffef4444.toInt()
@@ -263,25 +263,25 @@ class MainActivity : AppCompatActivity() {
             }
             header.addView(TextView(this).apply { text = "●"; textSize = 18f; setTextColor(color); setPadding(2, 0, 2, 0) })
         }
-        header.addView(TextView(this).apply { text = "✕"; textSize = 18f; gravity = Gravity.CENTER; setTextColor(0xff334155.toInt()); setPadding(12, 0, 0, 0); isClickable = true; setOnClickListener { viewModel.stopAction(); executionChainId = null; showToday(state.copy(running = null)) } })
+        header.addView(TextView(this).apply { text = "✕"; textSize = 18f; gravity = Gravity.CENTER; setTextColor(darkText); setPadding(12, 0, 0, 0); isClickable = true; setOnClickListener { viewModel.stopAction(); executionChainId = null; showToday(state.copy(running = null)) } })
         root.addView(header)
         val planned = formatAdaptive(current.totalSeconds)
         val currentCard = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(20, 18, 20, 18) }
-        currentCard.addView(TextView(this).apply { text = getString(R.string.running_duration, planned); textSize = 14f; setTextColor(0xff64748b.toInt()) })
+        currentCard.addView(TextView(this).apply { text = getString(R.string.running_duration, planned); textSize = 14f; setTextColor(secondaryText) })
         currentCard.addView(TextView(this).apply { text = action.title; textSize = 26f; setTypeface(typeface, android.graphics.Typeface.BOLD); setTextColor(navy); setPadding(0, 10, 0, 10) })
         val timerText = TextView(this).apply { text = formatAdaptive(current.elapsedSeconds); textSize = 36f; setTypeface(typeface, android.graphics.Typeface.BOLD); setTextColor(if (current.overtime) 0xffef4444.toInt() else accent); gravity = Gravity.CENTER_HORIZONTAL; setPadding(0, 8, 0, 14) }
         currentCard.addView(timerText)
-        val progress = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply { max = current.totalSeconds.coerceAtLeast(1).toInt(); progress = current.elapsedSeconds.coerceAtMost(current.totalSeconds).toInt(); progressTintList = ColorStateList.valueOf(if (current.overtime) 0xffef4444.toInt() else accent); progressBackgroundTintList = ColorStateList.valueOf(0xffe2e8f0.toInt()) }
+        val progress = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply { max = current.totalSeconds.coerceAtLeast(1).toInt(); progress = current.elapsedSeconds.coerceAtMost(current.totalSeconds).toInt(); progressTintList = ColorStateList.valueOf(if (current.overtime) 0xffef4444.toInt() else accent); progressBackgroundTintList = ColorStateList.valueOf(softSurface) }
         currentCard.addView(progress, LinearLayout.LayoutParams(-1, 20))
         root.addView(card(currentCard).apply { radius = 24f; strokeWidth = 2; strokeColor = accent })
         root.addView(secondaryButton(getString(R.string.running_reset)) { viewModel.resetCurrentTimer() })
         root.addView(secondaryButton(getString(R.string.running_postpone)) { viewModel.postponeCurrent() })
         val nextCard = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(20, 16, 20, 16) }
-        nextCard.addView(TextView(this).apply { text = getString(R.string.running_next); textSize = 14f; setTextColor(0xff64748b.toInt()) })
+        nextCard.addView(TextView(this).apply { text = getString(R.string.running_next); textSize = 14f; setTextColor(secondaryText) })
         nextCard.addView(TextView(this).apply { text = next?.title ?: getString(R.string.running_last_step); textSize = 20f; setTextColor(navy); setPadding(0, 6, 0, 0) })
         root.addView(card(nextCard))
         val bottom = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(0, 12, 0, 0) }
-        bottom.addView(TextView(this).apply { text = getString(R.string.running_end, SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(current.estimatedEndMillis))); textSize = 14f; gravity = Gravity.CENTER; setTextColor(0xff64748b.toInt()); setPadding(0, 0, 0, 8) })
+        bottom.addView(TextView(this).apply { text = getString(R.string.running_end, SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(current.estimatedEndMillis))); textSize = 14f; gravity = Gravity.CENTER; setTextColor(secondaryText); setPadding(0, 0, 0, 8) })
         val controls = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
         lateinit var pauseButton: MaterialButton
         pauseButton = controlButton(if (current.paused) getString(R.string.running_resume) else getString(R.string.running_pause), false) { viewModel.pauseResume() }
@@ -303,7 +303,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun controlButton(text: String, primary: Boolean, textSizeSp: Float = 14f, onClick: () -> Unit) = MaterialButton(this).apply {
         this.text = text; isAllCaps = false; textSize = textSizeSp; cornerRadius = 8; insetTop = 0; insetBottom = 0; elevation = 0f; stateListAnimator = null
-        backgroundTintList = ColorStateList.valueOf(if (primary) accent else 0xffe2e8f0.toInt()); setTextColor(if (primary) 0xffffffff.toInt() else 0xff334155.toInt()); setOnClickListener { onClick() }
+        backgroundTintList = ColorStateList.valueOf(if (primary) accent else softSurface); setTextColor(if (primary) 0xffffffff.toInt() else darkText); setOnClickListener { onClick() }
     }
 
     private fun circleToggle(checked: Boolean, skipped: Boolean, onToggle: (Boolean, ImageView) -> Unit) = ImageView(this).apply {
@@ -368,10 +368,10 @@ class MainActivity : AppCompatActivity() {
 
     private fun bottomNav(active: Tab): LinearLayout = LinearLayout(this).apply {
         orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER; setPadding(0, 0, 0, 0)
-        background = android.graphics.drawable.GradientDrawable().apply { cornerRadius = 0f; setColor(softSurface) }
+        background = android.graphics.drawable.GradientDrawable().apply { cornerRadius = 0f; setColor(surface) }
         fun add(label: String, iconRes: Int, tab: Tab) {
             val selected = tab == active
-            val foreground = if (selected) 0xffffffff.toInt() else 0xff334155.toInt()
+            val foreground = if (selected) 0xffffffff.toInt() else darkText
             val item = MaterialButton(this@MainActivity).apply {
                 text = label; isAllCaps = false; textSize = 14f; cornerRadius = 8
                 this.icon = getDrawable(iconRes); iconGravity = MaterialButton.ICON_GRAVITY_TEXT_TOP; iconPadding = 14; iconSize = 64
@@ -488,7 +488,7 @@ class MainActivity : AppCompatActivity() {
         orientation = LinearLayout.HORIZONTAL
         gravity = Gravity.CENTER
         setPadding(0, 0, 0, 0)
-        background = android.graphics.drawable.GradientDrawable().apply { setColor(0xffe2e8f0.toInt()) }
+        background = android.graphics.drawable.GradientDrawable().apply { setColor(surface) }
 
         fun item(iconRes: Int, label: String, primary: Boolean, onClick: () -> Unit) = MaterialButton(this@MainActivity).apply {
             text = label; isAllCaps = false; textSize = if (label.isEmpty()) 20f else 14f
@@ -497,8 +497,8 @@ class MainActivity : AppCompatActivity() {
             icon = getDrawable(iconRes); iconGravity = if (label.isEmpty()) MaterialButton.ICON_GRAVITY_TEXT_START else MaterialButton.ICON_GRAVITY_TEXT_TOP
             iconSize = if (label.isEmpty()) 42 else 36; iconPadding = 10
             backgroundTintList = ColorStateList.valueOf(if (primary) accent else android.graphics.Color.TRANSPARENT)
-            iconTint = ColorStateList.valueOf(if (primary) 0xffffffff.toInt() else 0xff334155.toInt())
-            setTextColor(if (primary) 0xffffffff.toInt() else 0xff334155.toInt())
+            iconTint = ColorStateList.valueOf(if (primary) 0xffffffff.toInt() else darkText)
+            setTextColor(if (primary) 0xffffffff.toInt() else darkText)
             setOnClickListener { onClick() }
         }
 
@@ -599,8 +599,8 @@ class MainActivity : AppCompatActivity() {
             setPadding(12, 10, 12, 12)
             background = android.graphics.drawable.GradientDrawable().apply {
                 cornerRadius = 18f
-                setColor(0xfff8fafc.toInt())
-                setStroke(1, 0xffe2e8f0.toInt())
+                setColor(inputSurface)
+                setStroke(1, border)
             }
         }
         box.addView(editorHeader(getString(R.string.duration_label)))
@@ -642,7 +642,7 @@ class MainActivity : AppCompatActivity() {
         addView(picker, LinearLayout.LayoutParams(-1, 174))
     }
 
-    private class CompactPicker(
+    private inner class CompactPicker(
         context: android.content.Context,
         private val min: Int,
         private val max: Int,
@@ -665,7 +665,7 @@ class MainActivity : AppCompatActivity() {
             values.forEach { view ->
                 view.textSize = 20f
                 view.gravity = Gravity.CENTER
-                view.setTextColor(0xff172554.toInt())
+                view.setTextColor(navy)
                 view.typeface = android.graphics.Typeface.create("sans", android.graphics.Typeface.NORMAL)
                 addView(view, LayoutParams(-1, 56))
             }
@@ -761,8 +761,8 @@ class MainActivity : AppCompatActivity() {
                 view.setTextColor(if (view.isSelected) 0xffffffff.toInt() else navy)
                 view.background = android.graphics.drawable.GradientDrawable().apply {
                     shape = android.graphics.drawable.GradientDrawable.OVAL
-                    setColor(if (view.isSelected) accent else 0xffe2e8f0.toInt())
-                    setStroke(2, if (view.isSelected) accent else 0xffcbd5e1.toInt())
+                    setColor(if (view.isSelected) accent else softSurface)
+                    setStroke(2, if (view.isSelected) accent else border)
                 }
             }
             views = codes.mapIndexed { index, code -> TextView(this).apply {
