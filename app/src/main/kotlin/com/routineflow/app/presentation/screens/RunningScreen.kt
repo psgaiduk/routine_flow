@@ -1,6 +1,9 @@
 package com.routineflow.app.presentation.screens
 
 import android.content.res.ColorStateList
+import android.graphics.drawable.ClipDrawable
+import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.LayerDrawable
 import android.view.Gravity
 import android.view.View
 import android.widget.*
@@ -14,6 +17,8 @@ import com.routineflow.app.presentation.TimeFormatter
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+const val RUNNING_PROGRESS_BAR_HEIGHT_PX = 80
 
 data class RunningScreenResult(val root: LinearLayout, val timer: TextView, val progress: ProgressBar, val pause: MaterialButton)
 
@@ -50,7 +55,29 @@ class RunningScreen(
         currentCard.addView(TextView(context).apply { text = context.getString(R.string.running_duration, TimeFormatter.adaptive(current.totalSeconds)); textSize = 14f; setTextColor(secondaryColor) })
         currentCard.addView(TextView(context).apply { text = action.title; textSize = 26f; setTypeface(typeface, android.graphics.Typeface.BOLD); setTextColor(textColor); setPadding(0, 10, 0, 10) })
         val timer = TextView(context).apply { text = TimeFormatter.adaptive(current.elapsedSeconds); textSize = 36f; setTypeface(typeface, android.graphics.Typeface.BOLD); setTextColor(if (current.overtime) 0xffef4444.toInt() else accentColor); gravity = Gravity.CENTER_HORIZONTAL; setPadding(0, 8, 0, 14) }; currentCard.addView(timer)
-        val progress = ProgressBar(context, null, android.R.attr.progressBarStyleHorizontal).apply { max = current.totalSeconds.coerceAtLeast(1).toInt(); this.progress = current.elapsedSeconds.coerceAtMost(current.totalSeconds).toInt(); progressTintList = ColorStateList.valueOf(if (current.overtime) 0xffef4444.toInt() else accentColor); progressBackgroundTintList = ColorStateList.valueOf(softSurfaceColor) }; currentCard.addView(progress, LinearLayout.LayoutParams(-1, 20))
+        val progress = ProgressBar(context, null, android.R.attr.progressBarStyleHorizontal).apply {
+            max = current.totalSeconds.coerceAtLeast(1).toInt()
+            this.progress = current.elapsedSeconds.coerceAtMost(current.totalSeconds).toInt()
+            progressDrawable = LayerDrawable(arrayOf(
+                GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = 20f
+                    setColor(softSurfaceColor)
+                },
+                ClipDrawable(
+                    GradientDrawable().apply {
+                        shape = GradientDrawable.RECTANGLE
+                        cornerRadius = 20f
+                        setColor(if (current.overtime) 0xffef4444.toInt() else accentColor)
+                    },
+                    Gravity.START,
+                    ClipDrawable.HORIZONTAL
+                )
+            )).apply { setId(0, android.R.id.background); setId(1, android.R.id.progress) }
+            progressTintList = ColorStateList.valueOf(if (current.overtime) 0xffef4444.toInt() else accentColor)
+            progressBackgroundTintList = ColorStateList.valueOf(softSurfaceColor)
+        }
+        currentCard.addView(progress, LinearLayout.LayoutParams(-1, RUNNING_PROGRESS_BAR_HEIGHT_PX))
         root.addView(card(currentCard).apply { tag = "running_current_card"; radius = 24f; strokeWidth = 2; strokeColor = accentColor }, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = 8 })
         if (canGoBack) root.addView(secondaryButton(context.getString(R.string.running_back_step), onBack))
         root.addView(secondaryButton(context.getString(R.string.running_reset), onReset).apply { tag = "running_reset_button" }); root.addView(secondaryButton(context.getString(R.string.running_postpone), onPostpone))

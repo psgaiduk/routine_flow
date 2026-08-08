@@ -6,6 +6,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.core.app.ApplicationProvider
 import com.routineflow.app.presentation.components.CompactPicker
 import com.routineflow.app.presentation.ScreenLayout
+import com.routineflow.app.presentation.screens.RUNNING_PROGRESS_BAR_HEIGHT_PX
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -40,5 +41,10 @@ class ScreenLayoutTest {
         assertEquals(8, activeValue.paddingBottom)
         assertEquals(60, picker.getChildAt(0).layoutParams.height)
         assertEquals(72, picker.getChildAt(2).layoutParams.height)
+    }
+
+    @Test
+    fun runningProgressBarUsesTenTimesThePreviousHeight() {
+        assertEquals(80, RUNNING_PROGRESS_BAR_HEIGHT_PX)
     }
 }
