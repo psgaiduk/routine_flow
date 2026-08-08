@@ -66,8 +66,8 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = true
-        WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightNavigationBars = true
+        WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = !isDarkTheme
+        WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightNavigationBars = !isDarkTheme
         if (android.os.Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1001)
         }
@@ -77,6 +77,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun render(state: AppState) {
+        if (state.running != null) {
+            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
         val chain = currentChainId?.let { id -> state.chains.firstOrNull { it.id == id } }
         if (currentChainId != null && chain == null) currentChainId = null
         val executionChain = executionChainId?.let { id -> state.chains.firstOrNull { it.id == id } }
@@ -338,25 +343,112 @@ class MainActivity : AppCompatActivity() {
         val root = base(getString(R.string.tab_chains))
         root.addView(TextView(this).apply { text = getString(R.string.chains_subtitle); textSize = 16f; setPadding(0, 12, 0, 8) })
         state.chains.forEach { chain ->
-            val row = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(4, 12, 4, 12) }
-            row.addView(TextView(this).apply {
+            val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(4, 12, 4, 12) }
+            val details = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+            details.addView(TextView(this).apply {
                 text = getString(R.string.run_chain_meta, formatDuration(chain.actions.sumOf { it.durationSeconds }.toLong()), chain.actions.size)
                 textSize = 13f; setTextColor(0xff64748b.toInt())
             })
-            row.addView(TextView(this).apply {
+            details.addView(TextView(this).apply {
                 text = chain.name; textSize = 20f; setTypeface(typeface, android.graphics.Typeface.BOLD)
                 setTextColor(navy); setPadding(0, 4, 0, 0)
             })
+            details.setOnLongClickListener { beginChainDrag(details, chain.id) }
+            row.addView(details, LinearLayout.LayoutParams(0, -2, 1f))
+            row.addView(ImageView(this).apply {
+                setImageResource(android.R.drawable.ic_menu_sort_by_size)
+                imageTintList = ColorStateList.valueOf(secondaryText)
+                contentDescription = getString(R.string.reorder_chains)
+                setPadding(8, 8, 4, 8)
+                setOnLongClickListener { beginChainDrag(this, chain.id) }
+            }, LinearLayout.LayoutParams(44, 44))
             val open = { executionChainId = null; currentChainId = chain.id; render(state) }
             row.setOnClickListener { open() }
-            root.addView(card(row).apply {
+            val insertionMarker = View(this).apply {
+                setBackgroundColor(accent)
+                visibility = View.GONE
+            }
+            val cardContent = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                addView(insertionMarker, LinearLayout.LayoutParams(-1, 4))
+                addView(row)
+            }
+            val chainCard = card(cardContent).apply {
                 radius = 22f; strokeWidth = 2; strokeColor = border; isClickable = true; isFocusable = true
                 setOnClickListener { open() }
-            }, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = 12 })
+                setOnLongClickListener { beginChainDrag(this, chain.id) }
+            }
+            chainCard.setOnDragListener { view, event -> chainDragEvent(chain.id, view, insertionMarker, event) }
+            root.addView(chainCard, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = 12 })
         }
+        root.addView(reorderEndDropZone { viewModel.moveChainToEnd(it) }, LinearLayout.LayoutParams(-1, 10))
         root.addView(button("＋  ${getString(R.string.new_chain)}") { newChainDialog() })
         addBottomNav(root, Tab.CHAINS)
         setContentView(root)
+    }
+
+    private fun beginChainDrag(source: View, chainId: Long): Boolean {
+        return beginReorderDrag(source, chainId)
+    }
+
+    private fun chainDragEvent(targetChainId: Long, targetView: View, insertionMarker: View, event: android.view.DragEvent): Boolean = reorderDragEvent(targetView, insertionMarker, event) { fromId ->
+        if (fromId != targetChainId) viewModel.moveChain(fromId, targetChainId)
+    }
+
+    private fun beginReorderDrag(source: View, itemId: Long): Boolean {
+        val dragData = ClipData.newPlainText("reorder_id", itemId.toString())
+        dragSourceView = source
+        source.alpha = 0.45f
+        Toast.makeText(this, getString(R.string.drag_hint), Toast.LENGTH_SHORT).show()
+        @Suppress("DEPRECATION")
+        return source.startDrag(dragData, View.DragShadowBuilder(source), null, 0)
+    }
+
+    private fun reorderDragEvent(targetView: View, insertionMarker: View, event: android.view.DragEvent, onDrop: (Long) -> Unit): Boolean = when (event.action) {
+        android.view.DragEvent.ACTION_DRAG_STARTED -> event.clipDescription?.hasMimeType("text/plain") == true
+        android.view.DragEvent.ACTION_DRAG_ENTERED -> {
+            if (targetView is MaterialCardView) targetView.strokeColor = accent
+            insertionMarker.visibility = View.VISIBLE
+            true
+        }
+        android.view.DragEvent.ACTION_DRAG_EXITED -> {
+            if (targetView is MaterialCardView) targetView.strokeColor = border
+            insertionMarker.visibility = View.GONE
+            true
+        }
+        android.view.DragEvent.ACTION_DROP -> {
+            event.clipData.getItemAt(0).text.toString().toLongOrNull()?.let(onDrop)
+            if (targetView is MaterialCardView) targetView.strokeColor = border
+            insertionMarker.visibility = View.GONE
+            true
+        }
+        android.view.DragEvent.ACTION_DRAG_ENDED -> {
+            if (targetView is MaterialCardView) targetView.strokeColor = border
+            insertionMarker.visibility = View.GONE
+            dragSourceView?.alpha = 1f
+            dragSourceView = null
+            true
+        }
+        else -> false
+    }
+
+    private fun reorderEndDropZone(onDrop: (Long) -> Unit): View = View(this).apply {
+        setBackgroundColor(accent)
+        alpha = 0f
+        setOnDragListener { _, event ->
+            when (event.action) {
+                android.view.DragEvent.ACTION_DRAG_STARTED -> event.clipDescription?.hasMimeType("text/plain") == true
+                android.view.DragEvent.ACTION_DRAG_ENTERED -> { alpha = 1f; true }
+                android.view.DragEvent.ACTION_DRAG_EXITED -> { alpha = 0f; true }
+                android.view.DragEvent.ACTION_DROP -> {
+                    event.clipData.getItemAt(0).text.toString().toLongOrNull()?.let(onDrop)
+                    alpha = 0f
+                    true
+                }
+                android.view.DragEvent.ACTION_DRAG_ENDED -> { alpha = 0f; true }
+                else -> false
+            }
+        }
     }
 
     private fun showStats(state: AppState) {
@@ -411,6 +503,7 @@ class MainActivity : AppCompatActivity() {
             details.addView(TextView(this).apply {
                 text = "${displayRecurrence(action.recurrence)} • ${formatDuration(action.durationSeconds.toLong())}"; textSize = 14f; setTextColor(0xff64748b.toInt()); setPadding(0, 4, 0, 0)
             })
+            details.setOnLongClickListener { beginActionDrag(details, action) }
             row.addView(details, LinearLayout.LayoutParams(0, -2, 1f))
             val dragHandle = ImageView(this).apply {
                 setImageResource(android.R.drawable.ic_menu_sort_by_size); imageTintList = ColorStateList.valueOf(0xff94a3b8.toInt())
@@ -437,47 +530,18 @@ class MainActivity : AppCompatActivity() {
             }
             root.addView(actionCard, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = 10 })
         }
+        root.addView(reorderEndDropZone { viewModel.moveActionToEnd(chain.id, it) }, LinearLayout.LayoutParams(-1, 10))
         root.addView(Space(this), LinearLayout.LayoutParams(1, 0, 1f))
         root.addView(chainSettingsBar(state, chain), LinearLayout.LayoutParams(-1, 158))
         setContentView(root)
     }
 
     private fun beginActionDrag(source: View, action: Action): Boolean {
-        val dragData = ClipData.newPlainText("action_id", action.id.toString())
-        dragSourceView = source
-        source.alpha = 0.45f
-        Toast.makeText(this, getString(R.string.drag_hint), Toast.LENGTH_SHORT).show()
-        @Suppress("DEPRECATION")
-        return source.startDrag(dragData, View.DragShadowBuilder(source), null, 0)
+        return beginReorderDrag(source, action.id)
     }
 
-    private fun actionDragEvent(chain: Chain, targetAction: Action, targetView: View, insertionMarker: View, event: android.view.DragEvent): Boolean = when (event.action) {
-        android.view.DragEvent.ACTION_DRAG_STARTED -> event.clipDescription?.hasMimeType("text/plain") == true
-        android.view.DragEvent.ACTION_DRAG_ENTERED -> {
-            if (targetView is MaterialCardView) targetView.strokeColor = accent
-            insertionMarker.visibility = View.VISIBLE
-            true
-        }
-        android.view.DragEvent.ACTION_DRAG_EXITED -> {
-            if (targetView is MaterialCardView) targetView.strokeColor = 0xffcbd5e1.toInt()
-            insertionMarker.visibility = View.GONE
-            true
-        }
-        android.view.DragEvent.ACTION_DROP -> {
-            val fromId = event.clipData.getItemAt(0).text.toString().toLongOrNull()
-            if (fromId != null && fromId != targetAction.id) viewModel.moveAction(chain.id, fromId, targetAction.id)
-            if (targetView is MaterialCardView) targetView.strokeColor = 0xffcbd5e1.toInt()
-            insertionMarker.visibility = View.GONE
-            true
-        }
-        android.view.DragEvent.ACTION_DRAG_ENDED -> {
-            if (targetView is MaterialCardView) targetView.strokeColor = 0xffcbd5e1.toInt()
-            insertionMarker.visibility = View.GONE
-            dragSourceView?.alpha = 1f
-            dragSourceView = null
-            true
-        }
-        else -> false
+    private fun actionDragEvent(chain: Chain, targetAction: Action, targetView: View, insertionMarker: View, event: android.view.DragEvent): Boolean = reorderDragEvent(targetView, insertionMarker, event) { fromId ->
+        if (fromId != targetAction.id) viewModel.moveAction(chain.id, fromId, targetAction.id)
     }
 
     private fun saveChainName(chain: Chain, value: String) {

@@ -38,6 +38,26 @@ class MainViewModel @Inject constructor(
 
     fun addChain(name: String) = update { it + Chain(System.currentTimeMillis(), name) }
 
+    fun moveChain(fromChainId: Long, toChainId: Long) = update { chains ->
+        if (fromChainId == toChainId) chains else {
+            val reordered = chains.toMutableList()
+            val fromIndex = reordered.indexOfFirst { it.id == fromChainId }
+            val toIndex = reordered.indexOfFirst { it.id == toChainId }
+            if (fromIndex < 0 || toIndex < 0) chains else {
+                val moved = reordered.removeAt(fromIndex)
+                val targetIndex = reordered.indexOfFirst { it.id == toChainId }.coerceAtLeast(0)
+                val insertionIndex = if (fromIndex < toIndex) targetIndex + 1 else targetIndex
+                reordered.add(insertionIndex.coerceIn(0, reordered.size), moved)
+                reordered
+            }
+        }
+    }
+
+    fun moveChainToEnd(chainId: Long) = update { chains ->
+        val index = chains.indexOfFirst { it.id == chainId }
+        if (index < 0 || index == chains.lastIndex) chains else chains.toMutableList().apply { add(removeAt(index)) }
+    }
+
     fun renameChain(chainId: Long, name: String) = update { chains -> chains.map { if (it.id == chainId) it.copy(name = name) else it } }
 
     fun addAction(chainId: Long, title: String, recurrence: String, durationSeconds: Int) = update { chains ->
@@ -66,9 +86,20 @@ class MainViewModel @Inject constructor(
                 val toIndex = reordered.indexOfFirst { it.id == toActionId }
                 if (fromIndex < 0 || toIndex < 0) chain else {
                     val moved = reordered.removeAt(fromIndex)
-                    reordered.add(reordered.indexOfFirst { it.id == toActionId }.coerceAtLeast(0), moved)
+                    val targetIndex = reordered.indexOfFirst { it.id == toActionId }.coerceAtLeast(0)
+                    val insertionIndex = if (fromIndex < toIndex) targetIndex + 1 else targetIndex
+                    reordered.add(insertionIndex.coerceIn(0, reordered.size), moved)
                     chain.copy(actions = reordered)
                 }
+            }
+        }
+    }
+
+    fun moveActionToEnd(chainId: Long, actionId: Long) = update { chains ->
+        chains.map { chain ->
+            if (chain.id != chainId) chain else {
+                val index = chain.actions.indexOfFirst { it.id == actionId }
+                if (index < 0 || index == chain.actions.lastIndex) chain else chain.copy(actions = chain.actions.toMutableList().apply { add(removeAt(index)) })
             }
         }
     }
@@ -105,6 +136,7 @@ class MainViewModel @Inject constructor(
                     val total = action.durationSeconds.coerceAtLeast(1).toLong()
                     val remaining = (total - elapsed).coerceAtLeast(0L)
                     running.value = RunningAction(chainId, action.id, total, remaining, estimatedEndMillis, elapsed, elapsed >= total)
+                    overtimeNotifier.updateTimer(chain.name, action.title, elapsed, total, elapsed >= total)
                     if (!overtimeSignalSent && elapsed >= total) {
                         overtimeNotifier.notifyOvertime(chain.name, action.title, 0, elapsed - total)
                         overtimeSignalSent = true
@@ -124,12 +156,13 @@ class MainViewModel @Inject constructor(
                 estimatedEndMillis = System.currentTimeMillis() + pending.sumOf { it.durationSeconds }.toLong() * 1000L
             }
             running.value = null
+            overtimeNotifier.clearTimer()
         }
     }
 
     fun stopAction() {
         postponeRequested = false
-        timerJob?.cancel(); timerJob = null; running.value = null
+        timerJob?.cancel(); timerJob = null; running.value = null; overtimeNotifier.clearTimer()
     }
 
     fun pauseResume() {

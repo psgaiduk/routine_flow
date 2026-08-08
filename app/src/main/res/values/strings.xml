@@ -26,10 +26,13 @@
     <string name="notification_overtime_title">Время вышло</string>
     <string name="notification_overtime_started">Действие «%1$s» продолжается дольше запланированного</string>
     <string name="notification_overtime_reminder">Действие «%1$s» выполняется уже %2$s сверх плана</string>
+    <string name="notification_timer_running">Выполняется: %1$s</string>
+    <string name="notification_timer_overtime">Переработка: %1$s</string>
     <string name="duration_minutes_seconds">%1$d мин %2$d сек</string>
     <string name="duration_seconds">%1$d сек</string>
     <string name="duration_label">Длительность</string>
     <string name="drag_hint">Перетащите карточку на нужное место</string>
+    <string name="reorder_chains">Изменить порядок цепочек</string>
     <string name="action_name">Название действия</string>
     <string name="hours">Часы</string>
     <string name="minutes">Минуты</string>
