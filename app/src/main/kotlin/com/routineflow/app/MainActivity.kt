@@ -97,7 +97,7 @@ class MainActivity : AppCompatActivity() {
     private val runScreen by lazy { RunScreen(this, navy, secondaryText, accent, border, ::card, viewModel::isDue, dateKey, { completedChainsExpanded }, { completedChainsExpanded = !completedChainsExpanded; render(viewModel.state.value) }, { chain, state -> viewModel.openExecution(chain.id); viewModel.stopAction(); showChainExecution(state.copy(running = null), chain) }, { chain -> viewModel.openExecution(chain.id); viewModel.startChain(chain.id) }) }
     private val chainEditorScreen by lazy { ChainEditorScreen(this, navy, accent, ::card, reorderDragController, recurrenceDisplayFormatter, ::saveChainName, ::editActionDialog, ::beginActionDrag, ::actionDragEvent, { chain, actionId -> viewModel.moveActionToEnd(chain.id, actionId) }, ::chainSettingsBar) }
     private val chainExecutionScreen by lazy { ChainExecutionScreen(this, navy, secondaryText, softSurface, darkText, ::card, ::bottomActionButton, ::circleToggle, dateKey, viewModel::isDue, { chain, action, checked, allCompleted, view -> styleCircleToggle(view, checked, false); if (allCompleted != (chain.actions.filter(viewModel::isDue).all { if (it.id == action.id) checked else it.doneOn == dateKey })) { executionScreenRoot = null; executionScreenChainId = null }; viewModel.toggleAction(chain.id, action.id, checked) }, { executionScreenRoot = null; executionScreenChainId = null; viewModel.closeExecution(); render(viewModel.state.value) }, { viewModel.navigation.value.executionChainId?.let { viewModel.startChain(it) } }) }
-    private val runningScreen by lazy { RunningScreen(this, navy, secondaryText, accent, softSurface, darkText, { title -> base(title) }, ::card, ::secondaryButton, ::controlButton, viewModel::isDue, dateKey, { viewModel.stopAction(); viewModel.closeExecution(); render(viewModel.state.value) }, viewModel::resetCurrentTimer, viewModel::postponeCurrent, viewModel::pauseResume, viewModel::completeCurrent, viewModel::skipCurrent) }
+    private val runningScreen by lazy { RunningScreen(this, navy, secondaryText, accent, softSurface, darkText, { title -> base(title) }, ::card, ::secondaryButton, ::controlButton, viewModel::isDue, dateKey, { viewModel.stopAction(); viewModel.closeExecution(); render(viewModel.state.value) }, viewModel::rewindCurrent, viewModel::resetCurrentTimer, viewModel::postponeCurrent, viewModel::pauseResume, viewModel::completeCurrent, viewModel::skipCurrent) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -187,7 +187,7 @@ class MainActivity : AppCompatActivity() {
         val current = state.running ?: return
         val action = chain.actions.firstOrNull { it.id == current.actionId } ?: return
         if (activeRunRoot?.isAttachedToWindow == true && activeRunChainId == chain.id && activeRunActionId == action.id) { updateRunningUi(current); return }
-        val result = runningScreen.build(chain, current)
+        val result = runningScreen.build(chain, current, viewModel.canRewindCurrent())
         activeRunRoot = result.root; activeRunChainId = chain.id; activeRunActionId = action.id; activeTimerText = result.timer; activeProgress = result.progress; activePauseButton = result.pause
         setContentView(result.root)
     }

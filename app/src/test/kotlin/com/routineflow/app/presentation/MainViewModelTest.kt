@@ -8,10 +8,14 @@ import com.routineflow.app.model.Chain
 import com.routineflow.app.model.RecurrenceRule
 import com.routineflow.app.notifications.RoutineNotifier
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -94,6 +98,42 @@ class MainViewModelTest {
         assertEquals(42L, viewModel.navigation.value.executionChainId)
         viewModel.closeExecution()
         assertEquals(null, viewModel.navigation.value.executionChainId)
+    }
+
+    @Test
+    fun rewindsToPreviousCompletedStepAtItsSavedElapsedTime() = runTest(dispatcher) {
+        repository.seed(listOf(
+            Chain(1, "Routine", listOf(
+                Action(11, "First", RecurrenceRule.Daily, durationSeconds = 30),
+                Action(12, "Second", RecurrenceRule.Daily, durationSeconds = 30)
+            ))
+        ))
+
+        try {
+            backgroundScope.launch { viewModel.state.collect {} }
+            runCurrent()
+            viewModel.startChain(1)
+            runCurrent()
+            advanceTimeBy(3_000)
+            runCurrent()
+            val elapsedBeforeCompletion = viewModel.state.value.running?.elapsedSeconds ?: error("first step is not running")
+
+            viewModel.completeCurrent()
+            advanceTimeBy(1_000)
+            runCurrent()
+            assertEquals(12L, viewModel.state.value.running?.actionId)
+
+            viewModel.rewindCurrent()
+            advanceTimeBy(1_000)
+            runCurrent()
+
+            assertEquals(11L, viewModel.state.value.running?.actionId)
+            assertEquals(elapsedBeforeCompletion, viewModel.state.value.running?.elapsedSeconds)
+            assertEquals(null, repository.chains.value.single().actions.first().doneOn)
+        } finally {
+            viewModel.stopAction()
+            runCurrent()
+        }
     }
 
     private class FakeRepository : ChainRepository {

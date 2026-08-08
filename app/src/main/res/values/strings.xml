@@ -96,6 +96,7 @@
     <string name="run_time_range">%1$s — %2$s</string>
     <string name="running_duration">Продолжительность: %1$s</string>
     <string name="running_reset">Сбросить таймер</string>
+    <string name="running_back_step">Назад к предыдущему шагу</string>
     <string name="running_postpone">Сделать позже</string>
     <string name="running_next">Следующий шаг</string>
     <string name="running_last_step">Последний шаг</string>

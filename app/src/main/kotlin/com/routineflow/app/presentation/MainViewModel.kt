@@ -30,6 +30,8 @@ class MainViewModel @Inject constructor(
     private val getTodayActions: GetTodayActionsUseCase,
     private val overtimeNotifier: RoutineNotifier
 ) : ViewModel() {
+    private data class CompletedStep(val action: Action, val elapsedSeconds: Long)
+
     private val _navigation = MutableStateFlow(NavigationState())
     val navigation: StateFlow<NavigationState> = _navigation
     private val running = MutableStateFlow<RunningAction?>(null)
@@ -37,6 +39,9 @@ class MainViewModel @Inject constructor(
     private var postponeRequested = false
     private var completionStatus = "DONE"
     private var completionRequested = false
+    private var requestedCompletionElapsed: Long? = null
+    private var rewindRequested = false
+    private val completedSteps = mutableListOf<CompletedStep>()
     val state: StateFlow<AppState> = combine(repository.chains, running) { chains, current -> AppState(chains, current) }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppState())
     private val dateKey get() = RoutineDay.currentDateKey()
 
@@ -112,13 +117,16 @@ class MainViewModel @Inject constructor(
         postponeRequested = false
         completionStatus = "DONE"
         completionRequested = false
+        requestedCompletionElapsed = null
+        rewindRequested = false
+        completedSteps.clear()
         timerJob?.cancel()
         timerJob = viewModelScope.launch {
             val chain = repository.chains.value.firstOrNull { it.id == chainId } ?: return@launch
             val pending = chain.actions.filter { getTodayActions.isDue(it) && it.doneOn != dateKey }.toMutableList()
             var estimatedEndMillis = System.currentTimeMillis() + pending.sumOf { it.durationSeconds }.toLong() * 1000L
             while (pending.isNotEmpty()) {
-                val action = pending.removeAt(0)
+                var action = pending.removeAt(0)
                 var elapsed = 0L
                 var postponed = false
                 var overtimeSignalSent = false
@@ -133,7 +141,24 @@ class MainViewModel @Inject constructor(
                     if (postponeRequested) {
                         postponeRequested = false; pending.add(action); running.value = null; postponed = true; break
                     }
-                    if (completionRequested) { completionRequested = false; break }
+                    if (rewindRequested) {
+                        rewindRequested = false
+                        val previous = completedSteps.removeLastOrNull()
+                        if (previous != null) {
+                            clearActionCompletion(chainId, previous.action.id)
+                            pending.add(0, action)
+                            action = previous.action
+                            elapsed = previous.elapsedSeconds
+                            completionStatus = "DONE"
+                            continue
+                        }
+                    }
+                    if (completionRequested) {
+                        completionRequested = false
+                        elapsed = requestedCompletionElapsed ?: elapsed
+                        requestedCompletionElapsed = null
+                        break
+                    }
                     val total = action.durationSeconds.coerceAtLeast(1).toLong()
                     val remaining = (total - elapsed).coerceAtLeast(0L)
                     running.value = RunningAction(chainId, action.id, total, remaining, estimatedEndMillis, elapsed, elapsed >= total)
@@ -153,10 +178,12 @@ class MainViewModel @Inject constructor(
                 if (postponed) continue
                 running.value = RunningAction(chainId, action.id, action.durationSeconds.toLong(), 0L, estimatedEndMillis)
                 completeAction(chainId, action.id, completionStatus)
+                completedSteps.add(CompletedStep(action, elapsed))
                 completionStatus = "DONE"
                 estimatedEndMillis = System.currentTimeMillis() + pending.sumOf { it.durationSeconds }.toLong() * 1000L
             }
             running.value = null
+            completedSteps.clear()
             overtimeNotifier.clearTimer()
         }
     }
@@ -177,14 +204,41 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    fun canRewindCurrent(): Boolean = running.value != null && completedSteps.isNotEmpty()
+
+    fun rewindCurrent() {
+        if (!canRewindCurrent()) return
+        rewindRequested = true
+        running.value?.let { running.value = it.copy(paused = false) }
+    }
+
     fun postponeCurrent() { postponeRequested = true; running.value?.let { running.value = it.copy(paused = false) } }
 
-    fun completeCurrent() { completionStatus = "DONE"; completionRequested = true; running.value?.let { current -> running.value = current.copy(paused = false) } }
-    fun skipCurrent() { completionStatus = "SKIPPED"; completionRequested = true; running.value?.let { current -> running.value = current.copy(paused = false) } }
+    fun completeCurrent() {
+        completionStatus = "DONE"
+        requestedCompletionElapsed = running.value?.elapsedSeconds
+        completionRequested = true
+        running.value?.let { current -> running.value = current.copy(paused = false) }
+    }
+
+    fun skipCurrent() {
+        completionStatus = "SKIPPED"
+        requestedCompletionElapsed = running.value?.elapsedSeconds
+        completionRequested = true
+        running.value?.let { current -> running.value = current.copy(paused = false) }
+    }
 
     private suspend fun completeAction(chainId: Long, actionId: Long, status: String) {
         repository.replace(repository.chains.value.map { chain ->
             if (chain.id == chainId) chain.copy(actions = chain.actions.map { action -> if (action.id == actionId) action.copy(doneOn = dateKey, executionStatus = status) else action }) else chain
+        })
+    }
+
+    private suspend fun clearActionCompletion(chainId: Long, actionId: Long) {
+        repository.replace(repository.chains.value.map { chain ->
+            if (chain.id == chainId) chain.copy(actions = chain.actions.map { action ->
+                if (action.id == actionId) action.copy(doneOn = null, executionStatus = null) else action
+            }) else chain
         })
     }
 

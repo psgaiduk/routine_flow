@@ -31,13 +31,14 @@ class RunningScreen(
     private val isDue: (Action) -> Boolean,
     private val todayKey: String,
     private val onStop: () -> Unit,
+    private val onBack: () -> Unit,
     private val onReset: () -> Unit,
     private val onPostpone: () -> Unit,
     private val onPauseResume: () -> Unit,
     private val onComplete: () -> Unit,
     private val onSkip: () -> Unit
 ) {
-    fun build(chain: Chain, current: RunningAction): RunningScreenResult {
+    fun build(chain: Chain, current: RunningAction, canGoBack: Boolean): RunningScreenResult {
         val action = chain.actions.firstOrNull { it.id == current.actionId } ?: error("Running action not found")
         val actions = chain.actions.filter(isDue); val next = actions.drop(actions.indexOfFirst { it.id == action.id } + 1).firstOrNull { it.doneOn != todayKey }
         val root = base(chain.name); val remaining = actions.count { it.doneOn != todayKey }
@@ -50,7 +51,9 @@ class RunningScreen(
         currentCard.addView(TextView(context).apply { text = action.title; textSize = 26f; setTypeface(typeface, android.graphics.Typeface.BOLD); setTextColor(textColor); setPadding(0, 10, 0, 10) })
         val timer = TextView(context).apply { text = TimeFormatter.adaptive(current.elapsedSeconds); textSize = 36f; setTypeface(typeface, android.graphics.Typeface.BOLD); setTextColor(if (current.overtime) 0xffef4444.toInt() else accentColor); gravity = Gravity.CENTER_HORIZONTAL; setPadding(0, 8, 0, 14) }; currentCard.addView(timer)
         val progress = ProgressBar(context, null, android.R.attr.progressBarStyleHorizontal).apply { max = current.totalSeconds.coerceAtLeast(1).toInt(); this.progress = current.elapsedSeconds.coerceAtMost(current.totalSeconds).toInt(); progressTintList = ColorStateList.valueOf(if (current.overtime) 0xffef4444.toInt() else accentColor); progressBackgroundTintList = ColorStateList.valueOf(softSurfaceColor) }; currentCard.addView(progress, LinearLayout.LayoutParams(-1, 20))
-        root.addView(card(currentCard).apply { radius = 24f; strokeWidth = 2; strokeColor = accentColor }); root.addView(secondaryButton(context.getString(R.string.running_reset), onReset)); root.addView(secondaryButton(context.getString(R.string.running_postpone), onPostpone))
+        root.addView(card(currentCard).apply { radius = 24f; strokeWidth = 2; strokeColor = accentColor })
+        if (canGoBack) root.addView(secondaryButton(context.getString(R.string.running_back_step), onBack))
+        root.addView(secondaryButton(context.getString(R.string.running_reset), onReset)); root.addView(secondaryButton(context.getString(R.string.running_postpone), onPostpone))
         val nextCard = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL; setPadding(20, 16, 20, 16) }; nextCard.addView(TextView(context).apply { text = context.getString(R.string.running_next); textSize = 14f; setTextColor(secondaryColor) }); nextCard.addView(TextView(context).apply { text = next?.title ?: context.getString(R.string.running_last_step); textSize = 20f; setTextColor(textColor); setPadding(0, 6, 0, 0) }); root.addView(card(nextCard))
         val bottom = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL; setPadding(0, 12, 0, 0) }; bottom.addView(TextView(context).apply { text = context.getString(R.string.running_end, SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(current.estimatedEndMillis))); textSize = 14f; gravity = Gravity.CENTER; setTextColor(secondaryColor); setPadding(0, 0, 0, 8) })
         val controls = LinearLayout(context).apply { gravity = Gravity.CENTER_VERTICAL }; val pause = controlButton(if (current.paused) context.getString(R.string.running_resume) else context.getString(R.string.running_pause), false, 14f, onPauseResume); controls.addView(pause, LinearLayout.LayoutParams(0, 150, 1f)); controls.addView(controlButton("✓", true, 28f, onComplete), LinearLayout.LayoutParams(0, 150, 1f)); controls.addView(controlButton(context.getString(R.string.running_skip), false, 14f, onSkip), LinearLayout.LayoutParams(0, 150, 1f)); bottom.addView(controls); root.addView(Space(context), LinearLayout.LayoutParams(1, 0, 1f)); root.addView(bottom, LinearLayout.LayoutParams(-1, 210))

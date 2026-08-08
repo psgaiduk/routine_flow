@@ -1,5 +1,6 @@
 package com.routineflow.app
 
+import android.os.SystemClock
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click
@@ -75,6 +76,26 @@ class MainUserFlowsTest {
         onView(withText(R.string.run_start)).perform(click())
 
         onView(withText(action)).check(matches(isDisplayed()))
+    }
+
+    @Test
+    fun previousStepButtonAppearsAfterCompletingFirstStep() {
+        val chain = "UI back chain $suffix"
+        val firstAction = "UI first step $suffix"
+        val secondAction = "UI second step $suffix"
+        createChain(chain)
+        addAction(chain, firstAction)
+        onView(withText(R.string.add_action)).perform(click())
+        onView(withTagValue(`is`("action_title_input"))).perform(replaceText(secondAction))
+        onView(withText(R.string.save)).perform(click())
+
+        onView(withText(R.string.tab_run)).perform(click())
+        onView(withText(chain)).perform(click())
+        onView(withText(R.string.run_start)).perform(click())
+        onView(withText("✓")).perform(click())
+        SystemClock.sleep(1_200)
+
+        onView(withText(R.string.running_back_step)).check(matches(isDisplayed()))
     }
 
     private fun openChains() {

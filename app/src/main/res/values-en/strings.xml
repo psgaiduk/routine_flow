@@ -96,6 +96,7 @@
     <string name="run_time_range">%1$s — %2$s</string>
     <string name="running_duration">Duration: %1$s</string>
     <string name="running_reset">Reset timer</string>
+    <string name="running_back_step">Back to previous step</string>
     <string name="running_postpone">Do later</string>
     <string name="running_next">Next step</string>
     <string name="running_last_step">Last step</string>
