@@ -6,6 +6,9 @@
     <string name="tab_stats">Статистика</string>
     <string name="chains_subtitle">Цепочки и расписания</string>
     <string name="new_chain">Новая цепочка</string>
+    <string name="chain_name_hint">Например: Утренняя рутина</string>
+    <string name="chain_name_label">Название цепочки</string>
+    <string name="create">Создать</string>
     <string name="add_action">Добавить действие</string>
     <string name="stats_placeholder">Статистика будет доступна в следующих версиях</string>
     <string name="run_no_chains">На сегодня цепочек нет</string>

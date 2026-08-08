@@ -514,10 +514,44 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun newChainDialog() {
-        val input = EditText(this).apply { hint = "Например: Утренняя рутина" }
-        AlertDialog.Builder(this).setTitle("Новая цепочка").setView(input).setNegativeButton("Отмена", null).setPositiveButton("Создать") { _, _ ->
-            input.text.toString().trim().takeIf(String::isNotEmpty)?.let(viewModel::addChain)
-        }.show()
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(24, 8, 24, 4)
+        }
+        content.addView(TextView(this).apply {
+            text = getString(R.string.new_chain)
+            textSize = 24f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setTextColor(navy)
+            setPadding(0, 0, 0, 6)
+        })
+        content.addView(TextView(this).apply {
+            text = getString(R.string.chain_name_label)
+            textSize = 14f
+            setTextColor(secondaryText)
+            setPadding(0, 0, 0, 16)
+        })
+        val input = EditText(this).apply {
+            hint = getString(R.string.chain_name_hint)
+            textSize = 17f
+            setSingleLine(true)
+            setTextColor(navy)
+            setHintTextColor(secondaryText)
+            setPadding(16, 0, 16, 0)
+            background = android.graphics.drawable.GradientDrawable().apply {
+                cornerRadius = 16f
+                setColor(inputSurface)
+                setStroke(1, border)
+            }
+        }
+        content.addView(input, LinearLayout.LayoutParams(-1, 56))
+        MaterialAlertDialogBuilder(this)
+            .setView(content)
+            .setNegativeButton(R.string.cancel, null)
+            .setPositiveButton(R.string.create) { _, _ ->
+                input.text.toString().trim().takeIf(String::isNotEmpty)?.let(viewModel::addChain)
+            }
+            .show()
     }
 
     private fun newActionDialog(chain: Chain) {

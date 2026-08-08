@@ -6,6 +6,9 @@
     <string name="tab_stats">Statistics</string>
     <string name="chains_subtitle">Chains and schedules</string>
     <string name="new_chain">New chain</string>
+    <string name="chain_name_hint">For example: Morning routine</string>
+    <string name="chain_name_label">Chain name</string>
+    <string name="create">Create</string>
     <string name="add_action">Add action</string>
     <string name="stats_placeholder">Statistics will be available in future versions</string>
     <string name="run_no_chains">No chains for today</string>
