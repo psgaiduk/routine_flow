@@ -29,7 +29,7 @@ class LocalChainRepository @Inject constructor(@ApplicationContext private val c
             val jsonActions = jsonChain.optJSONArray("actions") ?: JSONArray()
             val actions = (0 until jsonActions.length()).map { actionIndex ->
                 val jsonAction = jsonActions.getJSONObject(actionIndex)
-                val durationSeconds = if (jsonAction.has("durationSeconds")) jsonAction.optInt("durationSeconds", 20 * 60) else jsonAction.optInt("durationMinutes", 20) * 60
+                val durationSeconds = if (jsonAction.has("durationSeconds")) jsonAction.optInt("durationSeconds", 60) else jsonAction.optInt("durationMinutes", 1) * 60
                 Action(jsonAction.getLong("id"), jsonAction.getString("title"), jsonAction.getString("recurrence"), durationSeconds, jsonAction.optString("doneOn").takeUnless { it.isBlank() || it == "null" }, jsonAction.optString("executionStatus").takeUnless { it.isBlank() || it == "null" })
             }
             Chain(jsonChain.getLong("id"), jsonChain.getString("name"), actions)

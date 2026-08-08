@@ -525,6 +525,7 @@ class MainActivity : AppCompatActivity() {
             }
             dragHandle.setOnLongClickListener { beginActionDrag(dragHandle, action) }
             row.addView(dragHandle, LinearLayout.LayoutParams(44, 44))
+            details.setOnClickListener { editActionDialog(chain, action) }
             row.setOnClickListener { editActionDialog(chain, action) }
             row.setOnLongClickListener { beginActionDrag(row, action) }
             val insertionMarker = View(this).apply {
@@ -659,7 +660,7 @@ class MainActivity : AppCompatActivity() {
             }, LinearLayout.LayoutParams(-1, 1))
         }
         box.addView(titleField, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = 14 })
-        val duration = existing?.durationSeconds ?: 20 * 60
+        val duration = existing?.durationSeconds ?: 60
         val durationRow = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
         val hours = CompactPicker(this, 0, 2, (duration / 3600).coerceAtMost(2), true)
         val minutes = CompactPicker(this, 0, 59, (duration % 3600) / 60, true)
@@ -667,11 +668,11 @@ class MainActivity : AppCompatActivity() {
         val hourColumn = durationColumn(hours)
         val minuteColumn = durationColumn(minutes)
         val secondColumn = durationColumn(seconds)
-        durationRow.addView(hourColumn, LinearLayout.LayoutParams(0, 190, 1f).apply { marginEnd = 8 })
-        durationRow.addView(TextView(this).apply { text = ":"; textSize = 24f; setTypeface(typeface, android.graphics.Typeface.NORMAL); setTextColor(0xff64748b.toInt()); gravity = Gravity.CENTER; setPadding(0, 0, 0, 22) }, LinearLayout.LayoutParams(18, 190))
-        durationRow.addView(minuteColumn, LinearLayout.LayoutParams(0, 190, 1f).apply { marginStart = 8; marginEnd = 8 })
-        durationRow.addView(TextView(this).apply { text = ":"; textSize = 24f; setTypeface(typeface, android.graphics.Typeface.NORMAL); setTextColor(0xff64748b.toInt()); gravity = Gravity.CENTER; setPadding(0, 0, 0, 22) }, LinearLayout.LayoutParams(18, 190))
-        durationRow.addView(secondColumn, LinearLayout.LayoutParams(0, 190, 1f).apply { marginStart = 8 })
+        durationRow.addView(hourColumn, LinearLayout.LayoutParams(0, 238, 1f).apply { marginEnd = 8 })
+        durationRow.addView(TextView(this).apply { text = ":"; textSize = 24f; setTypeface(typeface, android.graphics.Typeface.NORMAL); setTextColor(0xff64748b.toInt()); gravity = Gravity.CENTER; setPadding(0, 0, 0, 22) }, LinearLayout.LayoutParams(18, 238))
+        durationRow.addView(minuteColumn, LinearLayout.LayoutParams(0, 238, 1f).apply { marginStart = 8; marginEnd = 8 })
+        durationRow.addView(TextView(this).apply { text = ":"; textSize = 24f; setTypeface(typeface, android.graphics.Typeface.NORMAL); setTextColor(0xff64748b.toInt()); gravity = Gravity.CENTER; setPadding(0, 0, 0, 22) }, LinearLayout.LayoutParams(18, 238))
+        durationRow.addView(secondColumn, LinearLayout.LayoutParams(0, 238, 1f).apply { marginStart = 8 })
         val durationSection = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(12, 10, 12, 12)
@@ -682,7 +683,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
         box.addView(editorHeader(getString(R.string.duration_label)))
-        durationSection.addView(durationRow, LinearLayout.LayoutParams(-1, 190))
+        durationSection.addView(durationRow, LinearLayout.LayoutParams(-1, 238))
         box.addView(durationSection, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = 8 })
         box.addView(durationLabelsRow(), LinearLayout.LayoutParams(-1, 42).apply { bottomMargin = 18 })
         var selected = existing?.recurrence ?: "NONE"
@@ -717,7 +718,7 @@ class MainActivity : AppCompatActivity() {
     private fun durationColumn(picker: CompactPicker): LinearLayout = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
         gravity = Gravity.CENTER
-        addView(picker, LinearLayout.LayoutParams(-1, 174))
+        addView(picker, LinearLayout.LayoutParams(-1, 222))
     }
 
     private inner class CompactPicker(
@@ -743,10 +744,13 @@ class MainActivity : AppCompatActivity() {
             values.forEach { view ->
                 view.textSize = 20f
                 view.gravity = Gravity.CENTER
+                view.setPadding(0, 0, 0, 0)
                 view.setTextColor(navy)
                 view.typeface = android.graphics.Typeface.create("sans", android.graphics.Typeface.NORMAL)
-                addView(view, LayoutParams(-1, 56))
+                addView(view, LayoutParams(-1, 72))
             }
+            values[1].textSize = 26f
+            values[1].translationY = -10f
             render()
             setOnTouchListener { _, event ->
                 when (event.action) {
