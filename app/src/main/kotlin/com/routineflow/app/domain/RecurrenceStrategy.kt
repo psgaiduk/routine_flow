@@ -1,6 +1,8 @@
 package com.routineflow.app.domain
 
 import com.routineflow.app.model.Action
+import com.routineflow.app.model.RecurrenceRule
+import com.routineflow.app.model.RecurrenceUnit
 import java.util.Calendar
 
 interface RecurrenceStrategy { fun isDue(action: Action, day: Calendar): Boolean }
@@ -18,25 +20,24 @@ private class MonthlyStrategy(private val days: Set<Int>) : RecurrenceStrategy {
     override fun isDue(action: Action, day: Calendar): Boolean = day.get(Calendar.DAY_OF_MONTH) in days
 }
 
-private class IntervalStrategy(private val count: Long, private val unit: String, private val extra: List<String> = emptyList()) : RecurrenceStrategy {
+private class IntervalStrategy(private val count: Long, private val unit: RecurrenceUnit, private val weekdays: Set<String> = emptySet(), private val monthDates: Set<Int> = emptySet(), private val weekdayPosition: String? = null, private val weekday: String? = null) : RecurrenceStrategy {
     override fun isDue(action: Action, day: Calendar): Boolean {
         val step = count.coerceAtLeast(1)
         return when (unit) {
-            "WEEKS" -> {
+            RecurrenceUnit.WEEKS -> {
                 val weekNumber = day.get(Calendar.WEEK_OF_YEAR).toLong()
-                val selectedDays = extra.drop(1).flatMap { it.split(",") }.filter(String::isNotBlank).toSet()
-                val matchesDay = if (extra.firstOrNull() == "WEEKDAYS") dayName(day) in selectedDays else true
+                val matchesDay = if (weekdays.isNotEmpty()) dayName(day) in weekdays else true
                 weekNumber % step == 0L && matchesDay
             }
-            "MONTHS" -> {
+            RecurrenceUnit.MONTHS -> {
                 val monthIndex = day.get(Calendar.YEAR) * 12L + day.get(Calendar.MONTH)
-                if (monthIndex % step != 0L) false else when (extra.firstOrNull()) {
-                    "DATE" -> day.get(Calendar.DAY_OF_MONTH).toString() in extra.drop(1).flatMap { it.split(",") }
-                    "WEEKDAY" -> isNthWeekday(day, extra.getOrNull(1), extra.getOrNull(2))
+                if (monthIndex % step != 0L) false else when {
+                    monthDates.isNotEmpty() -> day.get(Calendar.DAY_OF_MONTH) in monthDates
+                    weekday != null -> isNthWeekday(day, weekdayPosition, weekday)
                     else -> true
                 }
             }
-            "YEARS" -> day.get(Calendar.YEAR).toLong() % step == 0L
+            RecurrenceUnit.YEARS -> day.get(Calendar.YEAR).toLong() % step == 0L
             else -> (day.timeInMillis / 86_400_000L) % step == 0L
         }
     }
@@ -55,16 +56,19 @@ private fun isNthWeekday(day: Calendar, position: String?, code: String?): Boole
 }
 
 object RecurrenceStrategyFactory {
-    fun create(rule: String): RecurrenceStrategy = when {
-        rule == "NONE" || rule == "Не повторять" -> NoneStrategy
-        rule == "DAILY" || rule == "Каждый день" -> DailyStrategy
-        rule == "По будням" -> WeekdaysStrategy
-        rule == "Каждые 2 дня" -> LegacyIntervalStrategy
-        rule.startsWith("WEEKLY:") -> WeeklyStrategy(rule.removePrefix("WEEKLY:").split(",").filter(String::isNotBlank).toSet())
-        rule.startsWith("MONTHLY:") -> MonthlyStrategy(rule.removePrefix("MONTHLY:").split(",").mapNotNull(String::toIntOrNull).toSet())
-        rule.startsWith("INTERVAL:") -> rule.split(":").let { IntervalStrategy(it.getOrNull(1)?.toLongOrNull() ?: 1, it.getOrNull(2) ?: "DAYS", it.drop(3)) }
-        rule.startsWith("Дни: ") -> WeeklyStrategy(rule.removePrefix("Дни: ").split(", ").toSet())
-        else -> NoneStrategy
+    fun create(rule: RecurrenceRule): RecurrenceStrategy = when (rule) {
+        RecurrenceRule.None -> NoneStrategy
+        RecurrenceRule.Daily -> DailyStrategy
+        is RecurrenceRule.Weekly -> WeeklyStrategy(rule.days)
+        is RecurrenceRule.Monthly -> MonthlyStrategy(rule.dates)
+        is RecurrenceRule.Interval -> IntervalStrategy(rule.count.toLong(), rule.unit, rule.weekdays, rule.monthDates, rule.weekdayPosition, rule.weekday)
+        is RecurrenceRule.Unknown -> NoneStrategy
+    }
+
+    fun create(rule: String): RecurrenceStrategy = when (rule) {
+        "По будням" -> WeekdaysStrategy
+        "Каждые 2 дня" -> LegacyIntervalStrategy
+        else -> create(RecurrenceRuleCodec.parse(rule))
     }
 
 }

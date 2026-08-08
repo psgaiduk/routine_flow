@@ -4,8 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.routineflow.app.data.ChainRepository
 import com.routineflow.app.domain.GetTodayActionsUseCase
+import com.routineflow.app.domain.moveItem
+import com.routineflow.app.domain.RecurrenceRuleCodec
 import com.routineflow.app.domain.RoutineDay
-import com.routineflow.app.notifications.OvertimeNotifier
+import com.routineflow.app.notifications.RoutineNotifier
 import com.routineflow.app.model.Action
 import com.routineflow.app.model.AppState
 import com.routineflow.app.model.Chain
@@ -26,8 +28,10 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     private val repository: ChainRepository,
     private val getTodayActions: GetTodayActionsUseCase,
-    private val overtimeNotifier: OvertimeNotifier
+    private val overtimeNotifier: RoutineNotifier
 ) : ViewModel() {
+    private val _navigation = MutableStateFlow(NavigationState())
+    val navigation: StateFlow<NavigationState> = _navigation
     private val running = MutableStateFlow<RunningAction?>(null)
     private var timerJob: Job? = null
     private var postponeRequested = false
@@ -47,18 +51,9 @@ class MainViewModel @Inject constructor(
     }
 
     fun moveChain(fromChainId: Long, toChainId: Long) = update { chains ->
-        if (fromChainId == toChainId) chains else {
-            val reordered = chains.toMutableList()
-            val fromIndex = reordered.indexOfFirst { it.id == fromChainId }
-            val toIndex = reordered.indexOfFirst { it.id == toChainId }
-            if (fromIndex < 0 || toIndex < 0) chains else {
-                val moved = reordered.removeAt(fromIndex)
-                val targetIndex = reordered.indexOfFirst { it.id == toChainId }.coerceAtLeast(0)
-                val insertionIndex = if (fromIndex < toIndex) targetIndex + 1 else targetIndex
-                reordered.add(insertionIndex.coerceIn(0, reordered.size), moved)
-                reordered
-            }
-        }
+        val fromIndex = chains.indexOfFirst { it.id == fromChainId }
+        val toIndex = chains.indexOfFirst { it.id == toChainId }
+        moveItem(chains, fromIndex, toIndex)
     }
 
     fun moveChainToEnd(chainId: Long) = update { chains ->
@@ -69,11 +64,11 @@ class MainViewModel @Inject constructor(
     fun renameChain(chainId: Long, name: String) = update { chains -> chains.map { if (it.id == chainId) it.copy(name = name) else it } }
 
     fun addAction(chainId: Long, title: String, recurrence: String, durationSeconds: Int) = update { chains ->
-        chains.map { if (it.id == chainId) it.copy(actions = it.actions + Action(System.currentTimeMillis(), title, recurrence, durationSeconds)) else it }
+        chains.map { if (it.id == chainId) it.copy(actions = it.actions + Action(System.currentTimeMillis(), title, RecurrenceRuleCodec.parse(recurrence), durationSeconds)) else it }
     }
 
     fun editAction(chainId: Long, actionId: Long, title: String, recurrence: String, durationSeconds: Int) = update { chains ->
-        chains.map { chain -> if (chain.id == chainId) chain.copy(actions = chain.actions.map { action -> if (action.id == actionId) action.copy(title = title, recurrence = recurrence, durationSeconds = durationSeconds) else action }) else chain }
+        chains.map { chain -> if (chain.id == chainId) chain.copy(actions = chain.actions.map { action -> if (action.id == actionId) action.copy(title = title, recurrence = RecurrenceRuleCodec.parse(recurrence), durationSeconds = durationSeconds) else action }) else chain }
     }
 
     fun toggleAction(chainId: Long, actionId: Long, checked: Boolean) = update { chains ->
@@ -88,17 +83,10 @@ class MainViewModel @Inject constructor(
     fun deleteAction(chainId: Long, actionId: Long) = update { chains -> chains.map { if (it.id == chainId) it.copy(actions = it.actions.filterNot { action -> action.id == actionId }) else it } }
     fun moveAction(chainId: Long, fromActionId: Long, toActionId: Long) = update { chains ->
         chains.map { chain ->
-            if (chain.id != chainId || fromActionId == toActionId) chain else {
-                val reordered = chain.actions.toMutableList()
-                val fromIndex = reordered.indexOfFirst { it.id == fromActionId }
-                val toIndex = reordered.indexOfFirst { it.id == toActionId }
-                if (fromIndex < 0 || toIndex < 0) chain else {
-                    val moved = reordered.removeAt(fromIndex)
-                    val targetIndex = reordered.indexOfFirst { it.id == toActionId }.coerceAtLeast(0)
-                    val insertionIndex = if (fromIndex < toIndex) targetIndex + 1 else targetIndex
-                    reordered.add(insertionIndex.coerceIn(0, reordered.size), moved)
-                    chain.copy(actions = reordered)
-                }
+            if (chain.id != chainId) chain else {
+                val fromIndex = chain.actions.indexOfFirst { it.id == fromActionId }
+                val toIndex = chain.actions.indexOfFirst { it.id == toActionId }
+                chain.copy(actions = moveItem(chain.actions, fromIndex, toIndex))
             }
         }
     }
@@ -113,6 +101,11 @@ class MainViewModel @Inject constructor(
     }
     fun deleteChain(chainId: Long) = update { chains -> chains.filterNot { it.id == chainId } }
     fun isDue(action: Action) = getTodayActions.isDue(action)
+
+    fun selectTab(tab: AppTab) { _navigation.value = NavigationState(tab = tab) }
+    fun openChain(chainId: Long) { _navigation.value = _navigation.value.copy(chainId = chainId, executionChainId = null) }
+    fun openExecution(chainId: Long) { _navigation.value = _navigation.value.copy(executionChainId = chainId) }
+    fun closeExecution() { _navigation.value = _navigation.value.copy(executionChainId = null) }
 
     fun startChain(chainId: Long) {
         if (running.value != null) return

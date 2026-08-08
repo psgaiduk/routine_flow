@@ -17,7 +17,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class OvertimeNotifier @Inject constructor(@ApplicationContext private val context: Context) {
+class OvertimeNotifier @Inject constructor(@ApplicationContext private val context: Context) : RoutineNotifier {
     private val alertSound by lazy {
         RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
             ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
@@ -46,7 +46,7 @@ class OvertimeNotifier @Inject constructor(@ApplicationContext private val conte
         }
     }
 
-    fun notifyOvertime(chainName: String, actionName: String, reminderNumber: Int, overtimeSeconds: Long) {
+    override fun notifyOvertime(chainName: String, actionName: String, reminderNumber: Int, overtimeSeconds: Long) {
         playAlarmSignal()
         val text = if (reminderNumber == 0) {
             context.getString(R.string.notification_overtime_started, actionName)
@@ -92,7 +92,7 @@ class OvertimeNotifier @Inject constructor(@ApplicationContext private val conte
         }
     }
 
-    fun updateTimer(chainName: String, actionName: String, elapsedSeconds: Long, totalSeconds: Long, overtime: Boolean) {
+    override fun updateTimer(chainName: String, actionName: String, elapsedSeconds: Long, totalSeconds: Long, overtime: Boolean) {
         val text = if (overtime) {
             context.getString(R.string.notification_timer_overtime, actionName)
         } else {
@@ -111,7 +111,7 @@ class OvertimeNotifier @Inject constructor(@ApplicationContext private val conte
         runCatching { NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification) }
     }
 
-    fun clearTimer() {
+    override fun clearTimer() {
         runCatching {
             NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID)
             NotificationManagerCompat.from(context).cancel(ALERT_NOTIFICATION_ID)

@@ -12,8 +12,10 @@
     <string name="settings_loaded">Настройки загружены</string>
     <string name="settings_load_error">Не удалось загрузить настройки</string>
     <string name="new_chain">Новая цепочка</string>
+    <string name="edit_chain">Изменить цепочку</string>
     <string name="chain_name_hint">Например: Утренняя рутина</string>
     <string name="chain_name_label">Название цепочки</string>
+    <string name="chain_empty">В цепочке пока нет действий</string>
     <string name="create">Создать</string>
     <string name="add_action">Добавить действие</string>
     <string name="stats_placeholder">Статистика будет доступна в следующих версиях</string>

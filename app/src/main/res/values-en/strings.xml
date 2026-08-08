@@ -12,8 +12,10 @@
     <string name="settings_loaded">Settings loaded</string>
     <string name="settings_load_error">Could not load settings</string>
     <string name="new_chain">New chain</string>
+    <string name="edit_chain">Edit chain</string>
     <string name="chain_name_hint">For example: Morning routine</string>
     <string name="chain_name_label">Chain name</string>
+    <string name="chain_empty">There are no actions in this chain yet</string>
     <string name="create">Create</string>
     <string name="add_action">Add action</string>
     <string name="stats_placeholder">Statistics will be available in future versions</string>
