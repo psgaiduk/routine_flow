@@ -41,8 +41,17 @@ class MainActivity : AppCompatActivity() {
     private var currentTab = Tab.RUN
     private var executionChainId: Long? = null
     private val dateKey get() = RoutineDay.currentDateKey()
-    private val navy = 0xff172554.toInt()
+    private val isDarkTheme = false
+    private val navy = if (isDarkTheme) 0xffe2e8f0.toInt() else 0xff172554.toInt()
     private val accent = 0xff4f46e5.toInt()
+    private val pageBackground = if (isDarkTheme) 0xff0f172a.toInt() else 0xfff8fafc.toInt()
+    private val surface = if (isDarkTheme) 0xff1e293b.toInt() else 0xffffffff.toInt()
+    private val softSurface = if (isDarkTheme) 0xff273449.toInt() else 0xffe2e8f0.toInt()
+    private val inputSurface = if (isDarkTheme) 0xff172236.toInt() else 0xfff8fafc.toInt()
+    private val border = if (isDarkTheme) 0xff475569.toInt() else 0xffcbd5e1.toInt()
+    private val secondaryText = if (isDarkTheme) 0xffcbd5e1.toInt() else 0xff64748b.toInt()
+    private val darkText = if (isDarkTheme) 0xffe2e8f0.toInt() else 0xff334155.toInt()
+    private val inputLine = if (isDarkTheme) 0xff94a3b8.toInt() else 0xff94a3b8.toInt()
     private var activeRunRoot: View? = null
     private var activeRunChainId: Long? = null
     private var activeRunActionId: Long? = null
@@ -90,7 +99,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun base(title: String, showTitle: Boolean = true): LinearLayout = LinearLayout(this).apply {
-        orientation = LinearLayout.VERTICAL; val baseTop = 28; val baseBottom = 24; setPadding(24, baseTop, 24, baseBottom); setBackgroundColor(0xfff8fafc.toInt())
+        orientation = LinearLayout.VERTICAL; val baseTop = 28; val baseBottom = 24; setPadding(24, baseTop, 24, baseBottom); setBackgroundColor(pageBackground)
         ViewCompat.setOnApplyWindowInsetsListener(this) { view, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             view.setPadding(24, baseTop + bars.top, 24, baseBottom + bars.bottom)
@@ -120,7 +129,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun card(content: View) = MaterialCardView(this).apply {
-        radius = 22f; cardElevation = 0f; setCardBackgroundColor(0xffffffff.toInt()); setContentPadding(16, 8, 16, 8); addView(content)
+        radius = 22f; cardElevation = 0f; setCardBackgroundColor(surface); setContentPadding(16, 8, 16, 8); addView(content)
     }
 
     private fun showToday(state: AppState) {
@@ -140,7 +149,7 @@ class MainActivity : AppCompatActivity() {
         fun addChainCard(chain: Chain) {
             val dueActions = chain.actions.filter { viewModel.isDue(it) }
             val row = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(4, 12, 4, 12) }
-            row.addView(TextView(this).apply { text = getString(R.string.run_chain_meta, formatDuration(dueActions.sumOf { it.durationSeconds }.toLong()), dueActions.size); textSize = 13f; setTextColor(0xff64748b.toInt()) })
+            row.addView(TextView(this).apply { text = getString(R.string.run_chain_meta, formatDuration(dueActions.sumOf { it.durationSeconds }.toLong()), dueActions.size); textSize = 13f; setTextColor(secondaryText) })
             val name = TextView(this).apply { text = chain.name; textSize = 20f; setTypeface(typeface, android.graphics.Typeface.BOLD); setTextColor(navy); setPadding(0, 4, 0, 0) }
             row.addView(name)
             val open = {
@@ -150,7 +159,7 @@ class MainActivity : AppCompatActivity() {
             }
             row.setOnClickListener { open() }; name.setOnClickListener { open() }
             root.addView(card(row).apply {
-                radius = 22f; strokeWidth = 2; strokeColor = 0xffcbd5e1.toInt(); isClickable = true; isFocusable = true
+                radius = 22f; strokeWidth = 2; strokeColor = border; isClickable = true; isFocusable = true
                 setOnClickListener { open() }
             }, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = 12 })
         }
@@ -200,7 +209,7 @@ class MainActivity : AppCompatActivity() {
             root.addView(card(row).apply { setContentPadding(16, 10, 12, 10) })
         }
         val running = state.running?.takeIf { it.chainId == chain.id }
-        val bottom = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL; setPadding(0, 0, 0, 0); background = android.graphics.drawable.GradientDrawable().apply { setColor(0xffe2e8f0.toInt()) } }
+        val bottom = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL; setPadding(0, 0, 0, 0); background = android.graphics.drawable.GradientDrawable().apply { setColor(softSurface) } }
         fun goBack() {
             executionScreenRoot = null
             executionScreenChainId = null
@@ -212,7 +221,7 @@ class MainActivity : AppCompatActivity() {
         } else {
             val close = TextView(this).apply {
                 text = "✕"; textSize = 14f; gravity = Gravity.CENTER; setTextColor(0xff334155.toInt()); isClickable = true
-                background = android.graphics.drawable.GradientDrawable().apply { cornerRadius = 8f; setColor(0xffe2e8f0.toInt()) }
+                background = android.graphics.drawable.GradientDrawable().apply { cornerRadius = 8f; setColor(softSurface) }
                 setOnClickListener { goBack() }
             }
             bottom.addView(close, LinearLayout.LayoutParams(144, 150))
@@ -341,7 +350,7 @@ class MainActivity : AppCompatActivity() {
             val open = { executionChainId = null; currentChainId = chain.id; render(state) }
             row.setOnClickListener { open() }
             root.addView(card(row).apply {
-                radius = 22f; strokeWidth = 2; strokeColor = 0xffcbd5e1.toInt(); isClickable = true; isFocusable = true
+                radius = 22f; strokeWidth = 2; strokeColor = border; isClickable = true; isFocusable = true
                 setOnClickListener { open() }
             }, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = 12 })
         }
@@ -359,7 +368,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun bottomNav(active: Tab): LinearLayout = LinearLayout(this).apply {
         orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER; setPadding(0, 0, 0, 0)
-        background = android.graphics.drawable.GradientDrawable().apply { cornerRadius = 0f; setColor(0xffe2e8f0.toInt()) }
+        background = android.graphics.drawable.GradientDrawable().apply { cornerRadius = 0f; setColor(softSurface) }
         fun add(label: String, iconRes: Int, tab: Tab) {
             val selected = tab == active
             val foreground = if (selected) 0xffffffff.toInt() else 0xff334155.toInt()
