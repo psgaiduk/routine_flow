@@ -12,6 +12,7 @@ import android.view.Gravity
 import android.view.View
 import android.widget.*
 import androidx.activity.viewModels
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -37,6 +38,23 @@ import java.util.Locale
 class MainActivity : AppCompatActivity() {
     private enum class Tab { RUN, CHAINS, STATS }
     private val viewModel: MainViewModel by viewModels()
+    private val exportSettingsLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri != null) viewModel.exportSettings { json ->
+            runCatching { contentResolver.openOutputStream(uri)?.use { it.write(json.toByteArray()) } }
+                .onSuccess { Toast.makeText(this, getString(R.string.settings_saved), Toast.LENGTH_SHORT).show() }
+        }
+    }
+    private val importSettingsLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) runCatching {
+            contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } ?: error("empty")
+        }.onSuccess { json ->
+            viewModel.importSettings(json) { success ->
+                Toast.makeText(this, getString(if (success) R.string.settings_loaded else R.string.settings_load_error), Toast.LENGTH_SHORT).show()
+            }
+        }.onFailure {
+            Toast.makeText(this, getString(R.string.settings_load_error), Toast.LENGTH_SHORT).show()
+        }
+    }
     private var currentChainId: Long? = null
     private var currentTab = Tab.RUN
     private var executionChainId: Long? = null
@@ -353,7 +371,20 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showChains(state: AppState) {
-        val root = base(getString(R.string.tab_chains))
+        val root = base("", showTitle = false)
+        val header = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(0, 0, 0, 20) }
+        header.addView(TextView(this).apply {
+            text = getString(R.string.tab_chains); textSize = 30f; setTypeface(typeface, android.graphics.Typeface.BOLD); setTextColor(navy)
+        }, LinearLayout.LayoutParams(0, -2, 1f))
+        header.addView(ImageButton(this).apply {
+            setImageResource(R.drawable.ic_settings)
+            imageTintList = ColorStateList.valueOf(darkText)
+            background = null
+            contentDescription = getString(R.string.chain_settings)
+            setPadding(8, 8, 8, 8)
+            setOnClickListener { showChainSettingsMenu(this) }
+        }, LinearLayout.LayoutParams(56, 56).apply { marginEnd = 8 })
+        root.addView(header)
         root.addView(TextView(this).apply { text = getString(R.string.chains_subtitle); textSize = 16f; setPadding(0, 12, 0, 8) })
         state.chains.forEach { chain ->
             val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(4, 12, 4, 12) }
@@ -399,6 +430,20 @@ class MainActivity : AppCompatActivity() {
         root.addView(button("＋  ${getString(R.string.new_chain)}") { newChainDialog() })
         addBottomNav(root, Tab.CHAINS)
         setContentView(root)
+    }
+
+    private fun showChainSettingsMenu(anchor: View) {
+        PopupMenu(this, anchor).apply {
+            menu.add(0, 1, 0, R.string.save_settings)
+            menu.add(0, 2, 1, R.string.load_settings)
+            setOnMenuItemClickListener { item ->
+                when (item.itemId) {
+                    1 -> exportSettingsLauncher.launch("routine-flow.json")
+                    2 -> importSettingsLauncher.launch(arrayOf("application/json", "text/plain"))
+                }
+                true
+            }
+        }.show()
     }
 
     private fun beginChainDrag(source: View, chainId: Long): Boolean {

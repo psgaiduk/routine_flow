@@ -20,11 +20,23 @@ class LocalChainRepository @Inject constructor(@ApplicationContext private val c
         save(chains)
     }
 
+    override suspend fun exportJson(): String = serialize(state.value)
+
+    override suspend fun importJson(json: String): Boolean = runCatching {
+        val imported = parse(json)
+        state.value = imported
+        save(imported)
+    }.isSuccess
+
     @VisibleForTesting
     internal fun load(): List<Chain> = runCatching {
         val text = context.openFileInput(FILE_NAME).bufferedReader().use { it.readText() }
+        parse(text)
+    }.getOrDefault(emptyList())
+
+    private fun parse(text: String): List<Chain> {
         val root = JSONArray(text)
-        (0 until root.length()).map { index ->
+        return (0 until root.length()).map { index ->
             val jsonChain = root.getJSONObject(index)
             val jsonActions = jsonChain.optJSONArray("actions") ?: JSONArray()
             val actions = (0 until jsonActions.length()).map { actionIndex ->
@@ -34,9 +46,13 @@ class LocalChainRepository @Inject constructor(@ApplicationContext private val c
             }
             Chain(jsonChain.getLong("id"), jsonChain.getString("name"), actions)
         }
-    }.getOrDefault(emptyList())
+    }
 
     private fun save(chains: List<Chain>) {
+        context.openFileOutput(FILE_NAME, Context.MODE_PRIVATE).use { it.write(serialize(chains).toByteArray()) }
+    }
+
+    private fun serialize(chains: List<Chain>): String {
         val root = JSONArray()
         chains.forEach { chain ->
             root.put(JSONObject().apply {
@@ -46,7 +62,7 @@ class LocalChainRepository @Inject constructor(@ApplicationContext private val c
                 } })
             })
         }
-        context.openFileOutput(FILE_NAME, Context.MODE_PRIVATE).use { it.write(root.toString().toByteArray()) }
+        return root.toString()
     }
 
     private companion object { const val FILE_NAME = "routine-flow.json" }

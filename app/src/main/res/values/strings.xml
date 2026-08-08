@@ -5,6 +5,12 @@
     <string name="tab_chains">Цепочки</string>
     <string name="tab_stats">Статистика</string>
     <string name="chains_subtitle">Цепочки и расписания</string>
+    <string name="chain_settings">Настройки цепочек</string>
+    <string name="save_settings">Сохранить настройки</string>
+    <string name="load_settings">Загрузить настройки</string>
+    <string name="settings_saved">Настройки сохранены</string>
+    <string name="settings_loaded">Настройки загружены</string>
+    <string name="settings_load_error">Не удалось загрузить настройки</string>
     <string name="new_chain">Новая цепочка</string>
     <string name="chain_name_hint">Например: Утренняя рутина</string>
     <string name="chain_name_label">Название цепочки</string>

@@ -38,6 +38,14 @@ class MainViewModel @Inject constructor(
 
     fun addChain(name: String) = update { it + Chain(System.currentTimeMillis(), name) }
 
+    fun exportSettings(onReady: (String) -> Unit) = viewModelScope.launch {
+        onReady(repository.exportJson())
+    }
+
+    fun importSettings(json: String, onResult: (Boolean) -> Unit) = viewModelScope.launch {
+        onResult(repository.importJson(json))
+    }
+
     fun moveChain(fromChainId: Long, toChainId: Long) = update { chains ->
         if (fromChainId == toChainId) chains else {
             val reordered = chains.toMutableList()

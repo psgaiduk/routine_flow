@@ -5,6 +5,12 @@
     <string name="tab_chains">Chains</string>
     <string name="tab_stats">Statistics</string>
     <string name="chains_subtitle">Chains and schedules</string>
+    <string name="chain_settings">Chain settings</string>
+    <string name="save_settings">Save settings</string>
+    <string name="load_settings">Load settings</string>
+    <string name="settings_saved">Settings saved</string>
+    <string name="settings_loaded">Settings loaded</string>
+    <string name="settings_load_error">Could not load settings</string>
     <string name="new_chain">New chain</string>
     <string name="chain_name_hint">For example: Morning routine</string>
     <string name="chain_name_label">Chain name</string>
