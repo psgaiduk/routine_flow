@@ -48,6 +48,7 @@
     <string name="repeat_daily_summary">Repeats every day</string>
     <string name="repeat_none_summary">One-time action</string>
     <string name="repeat_days_summary">Repeats: %1$s</string>
+    <string name="select_weekday_error">Select at least one weekday</string>
     <string name="repeat_month_summary">Repeats on day %1$s of each month</string>
     <string name="repeat_interval_summary">Repeats every %1$s %2$s</string>
     <string name="month_days_hint">For example: 10, 25</string>

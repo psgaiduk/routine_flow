@@ -48,6 +48,7 @@
     <string name="repeat_daily_summary">Повторять каждый день</string>
     <string name="repeat_none_summary">Однократное действие</string>
     <string name="repeat_days_summary">Повторять: %1$s</string>
+    <string name="select_weekday_error">Выберите хотя бы один день недели</string>
     <string name="repeat_month_summary">Повторять %1$s числа каждого месяца</string>
     <string name="repeat_interval_summary">Повторять каждые %1$s %2$s</string>
     <string name="month_days_hint">Например: 10, 25</string>

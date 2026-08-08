@@ -566,15 +566,23 @@ class MainActivity : AppCompatActivity() {
         box.addView(durationLabelsRow(), LinearLayout.LayoutParams(-1, 42).apply { bottomMargin = 18 })
         var selected = existing?.recurrence ?: "NONE"
         box.addView(recurrenceEditorV2(selected) { selected = it })
-        MaterialAlertDialogBuilder(this).setView(ScrollView(this).apply { addView(box) }).setNegativeButton(R.string.cancel, null)
+        val actionDialog = MaterialAlertDialogBuilder(this).setView(ScrollView(this).apply { addView(box) }).setNegativeButton(R.string.cancel, null)
             .apply { if (existing != null) setNeutralButton(R.string.delete) { _, _ -> confirmDeleteAction(chain, existing) } }
-            .setPositiveButton(R.string.save) { _, _ ->
+            .setPositiveButton(R.string.save, null)
+            .show()
+        actionDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            val weeklyRuleWithoutDays = selected.startsWith("INTERVAL:") && selected.contains(":WEEKS:WEEKDAYS:") && selected.substringAfter(":WEEKS:WEEKDAYS:").isBlank()
+            if (weeklyRuleWithoutDays) {
+                Toast.makeText(this, getString(R.string.select_weekday_error), Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
             val totalSeconds = hours.value * 3600 + minutes.value * 60 + seconds.value
             title.text.toString().trim().takeIf(String::isNotEmpty)?.let { name ->
                 if (existing == null) viewModel.addAction(chain.id, name, selected, totalSeconds.coerceAtLeast(1))
                 else viewModel.editAction(chain.id, existing.id, name, selected, totalSeconds.coerceAtLeast(1))
             }
-        }.show()
+            actionDialog.dismiss()
+        }
     }
 
     private fun editorHeader(text: String): TextView = TextView(this).apply {
@@ -750,7 +758,11 @@ class MainActivity : AppCompatActivity() {
             val unitIndex = unitPicker.selectedItemPosition
             if (unitIndex == 0) { summary.text = getString(R.string.repeat_interval_summary, amount, getString(R.string.unit_days)); onChanged("INTERVAL:$amount:DAYS"); return }
             if (unitIndex == 1) {
-                val saved = if (initial.startsWith("WEEKLY:")) initial.removePrefix("WEEKLY:").split(",").toSet() else setOf("Пн")
+                val saved = when {
+                    initial.startsWith("WEEKLY:") -> initial.removePrefix("WEEKLY:").split(",").filter(String::isNotBlank).toSet()
+                    initial.startsWith("INTERVAL:") -> initial.split(":").drop(4).flatMap { it.split(",") }.filter(String::isNotBlank).toSet()
+                    else -> emptySet()
+                }
                 details.addView(dayChips(saved, onSelectionChanged = { selectedCodes -> summary.text = getString(R.string.repeat_days_summary, localizedDays(selectedCodes)); onChanged("INTERVAL:$amount:WEEKS:WEEKDAYS:${selectedCodes.joinToString(",")}") }))
                 summary.text = getString(R.string.repeat_days_summary, localizedDays(saved)); onChanged("INTERVAL:$amount:WEEKS:WEEKDAYS:${saved.joinToString(",")}"); return
             }

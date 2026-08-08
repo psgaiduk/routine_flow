@@ -24,7 +24,8 @@ private class IntervalStrategy(private val count: Long, private val unit: String
         return when (unit) {
             "WEEKS" -> {
                 val weekNumber = day.get(Calendar.WEEK_OF_YEAR).toLong()
-                val matchesDay = if (extra.firstOrNull() == "WEEKDAYS") dayName(day) in extra.drop(1) else true
+                val selectedDays = extra.drop(1).flatMap { it.split(",") }.filter(String::isNotBlank).toSet()
+                val matchesDay = if (extra.firstOrNull() == "WEEKDAYS") dayName(day) in selectedDays else true
                 weekNumber % step == 0L && matchesDay
             }
             "MONTHS" -> {
