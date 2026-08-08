@@ -377,6 +377,7 @@ class MainActivity : AppCompatActivity() {
             }, LinearLayout.LayoutParams(44, 44))
             val open = { executionChainId = null; currentChainId = chain.id; render(state) }
             row.setOnClickListener { open() }
+            details.setOnClickListener { open() }
             val insertionMarker = View(this).apply {
                 setBackgroundColor(accent)
                 visibility = View.GONE
