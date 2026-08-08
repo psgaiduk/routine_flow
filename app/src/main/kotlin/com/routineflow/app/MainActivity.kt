@@ -242,7 +242,7 @@ class MainActivity : AppCompatActivity() {
             }, LinearLayout.LayoutParams(48, 48).apply {
                 marginStart = 12
             })
-            root.addView(card(row).apply { setContentPadding(16, 10, 12, 10) })
+            root.addView(card(row).apply { setContentPadding(16, 10, 12, 10) }, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = 10 })
         }
         val running = state.running?.takeIf { it.chainId == chain.id }
         val bottom = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL; setPadding(0, 0, 0, 0); background = android.graphics.drawable.GradientDrawable().apply { setColor(softSurface) } }
