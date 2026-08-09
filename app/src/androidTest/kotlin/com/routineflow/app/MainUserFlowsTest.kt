@@ -146,6 +146,29 @@ class MainUserFlowsTest {
         }
     }
 
+    @Test
+    fun nextStepCardHasStandardGapAfterPostponeButton() {
+        val chain = "UI next spacing chain $suffix"
+        val action = "UI next spacing action $suffix"
+        createChain(chain)
+        addAction(chain, action)
+        onView(withText(R.string.tab_run)).perform(click())
+        onView(withText(chain)).perform(click())
+        onView(withText(R.string.run_start)).perform(click())
+
+        onView(withTagValue(`is`("running_postpone_button"))).check { postponeButton, _ ->
+            val nextCard = postponeButton.rootView.findViewWithTag<android.view.View>("running_next_card")
+            check(nextCard != null) { "Running next-step card is missing" }
+            val nextBounds = Rect()
+            val postponeBounds = Rect()
+            nextCard.getGlobalVisibleRect(nextBounds)
+            postponeButton.getGlobalVisibleRect(postponeBounds)
+            check(nextBounds.top - postponeBounds.bottom >= 6) {
+                "Expected at least 6 px gap after postpone button, got ${nextBounds.top - postponeBounds.bottom}"
+            }
+        }
+    }
+
     private fun openChains() {
         onView(withText(R.string.tab_chains)).perform(click())
         onView(withText(R.string.chains_subtitle)).check(matches(isDisplayed()))

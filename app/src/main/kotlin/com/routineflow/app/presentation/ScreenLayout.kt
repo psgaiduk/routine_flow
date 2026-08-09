@@ -10,6 +10,7 @@ import android.widget.LinearLayout
 object ScreenLayout {
     // Keep the panel background flush with its 1.5x-sized buttons.
     const val BOTTOM_MENU_HEIGHT_PX = 200
+    const val RUNNING_NEXT_STEP_GAP_PX = 6
     const val CHAIN_EDITOR_SIDE_MENU_WEIGHT = 1f
     const val CHAIN_EDITOR_CENTER_MENU_WEIGHT = 2f
 
