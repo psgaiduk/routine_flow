@@ -170,7 +170,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun showToday(state: AppState) {
         val root = base(getString(R.string.run_title))
-        root.addView(runScreen.build(state))
+        root.addView(ScreenLayout.scrollable(this, runScreen.build(state)), ScreenLayout.fillRemaining())
         addBottomNav(root, AppTab.RUN)
         setContentView(root)
     }
@@ -229,7 +229,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun showChains(state: AppState) {
         val root = base("", showTitle = false)
-        root.addView(chainsScreen.build(state.chains))
+        root.addView(ScreenLayout.scrollable(this, chainsScreen.build(state.chains)), ScreenLayout.fillRemaining())
         addBottomNav(root, AppTab.CHAINS)
         setContentView(root)
     }
@@ -267,7 +267,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun showStats(state: AppState) {
         val root = base(getString(R.string.tab_stats))
-        root.addView(statsScreen.build())
+        root.addView(ScreenLayout.scrollable(this, statsScreen.build()), ScreenLayout.fillRemaining())
         addBottomNav(root, AppTab.STATS)
         setContentView(root)
     }
@@ -294,7 +294,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun addBottomNav(root: LinearLayout, active: AppTab) {
-        root.addView(Space(this), LinearLayout.LayoutParams(1, 0, 1f))
         root.addView(bottomNav(active), LinearLayout.LayoutParams(-1, ScreenLayout.BOTTOM_MENU_HEIGHT_PX))
     }
 

@@ -2,6 +2,7 @@ package com.routineflow.app
 
 import android.graphics.Color
 import android.widget.TextView
+import android.widget.LinearLayout
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.core.app.ApplicationProvider
 import com.routineflow.app.presentation.components.CompactPicker
@@ -26,6 +27,15 @@ class ScreenLayoutTest {
     @Test
     fun allBottomMenusUseSharedScaledDimensions() {
         assertEquals(200, ScreenLayout.BOTTOM_MENU_HEIGHT_PX)
+    }
+
+    @Test
+    fun scrollableContentKeepsContentInDedicatedScrollContainer() {
+        val content = LinearLayout(ApplicationProvider.getApplicationContext())
+        val scroll = ScreenLayout.scrollable(ApplicationProvider.getApplicationContext(), content)
+
+        assertEquals(1, scroll.childCount)
+        assertEquals(content, scroll.getChildAt(0))
     }
 
     @Test

@@ -56,7 +56,14 @@ class ChainExecutionScreen(
             val startLabel = if (running != null) TimeFormatter.duration(running.remainingSeconds) else context.getString(R.string.run_start)
             bottom.addView(bottomButton(startLabel, true, 14f, onStart), LinearLayout.LayoutParams(0, ScreenLayout.BOTTOM_MENU_HEIGHT_PX, 3f))
         }
-        root.addView(Space(context), LinearLayout.LayoutParams(1, 0, 1f)); root.addView(bottom, LinearLayout.LayoutParams(-1, ScreenLayout.BOTTOM_MENU_HEIGHT_PX))
+        val content = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
+        while (root.childCount > 0) {
+            val child = root.getChildAt(0)
+            root.removeViewAt(0)
+            content.addView(child)
+        }
+        root.addView(ScreenLayout.scrollable(context, content), ScreenLayout.fillRemaining())
+        root.addView(bottom, LinearLayout.LayoutParams(-1, ScreenLayout.BOTTOM_MENU_HEIGHT_PX))
         return root
     }
 }

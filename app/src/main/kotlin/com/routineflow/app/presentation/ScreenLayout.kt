@@ -1,6 +1,9 @@
 package com.routineflow.app.presentation
 
+import android.content.Context
 import android.view.ViewGroup
+import android.view.View
+import android.widget.ScrollView
 import android.widget.LinearLayout
 
 /** Layout contract for a screen that must fill the space above a fixed bottom bar. */
@@ -12,4 +15,9 @@ object ScreenLayout {
 
     fun fillRemaining(): LinearLayout.LayoutParams =
         LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f)
+
+    fun scrollable(context: Context, content: View): ScrollView = ScrollView(context).apply {
+        isFillViewport = true
+        addView(content, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+    }
 }
