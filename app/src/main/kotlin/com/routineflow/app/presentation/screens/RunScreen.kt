@@ -40,12 +40,29 @@ class RunScreen(
 
     private fun chainCard(chain: Chain, state: AppState): View {
         val due = chain.actions.filter(isDue)
-        val row = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(4, 12, 4, 12) }
+        val row = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; clipChildren = false; setPadding(4, 12, 4, 12) }
         val details = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
         details.addView(TextView(context).apply { text = context.getString(R.string.run_chain_meta, TimeFormatter.duration(due.sumOf { it.durationSeconds }.toLong()), due.size); textSize = 13f; setTextColor(secondaryColor) })
         details.addView(TextView(context).apply { text = chain.name; textSize = 20f; setTypeface(typeface, android.graphics.Typeface.BOLD); setTextColor(textColor); setPadding(0, 4, 0, 0) })
-        row.addView(details, LinearLayout.LayoutParams(0, -2, 1f))
-        row.addView(ImageButton(context).apply { setImageResource(android.R.drawable.ic_media_play); imageTintList = ColorStateList.valueOf(accentColor); contentDescription = context.getString(R.string.quick_start); background = null; setPadding(12, 12, 4, 12); setOnClickListener { onQuickStart(chain) } }, LinearLayout.LayoutParams(58, 58).apply { marginStart = 12 })
+        row.addView(details, LinearLayout.LayoutParams(0, -2, 0.82f))
+        row.addView(LinearLayout(context).apply {
+            tag = "quick_start_area"
+            gravity = Gravity.CENTER_VERTICAL or Gravity.END
+            clipChildren = false
+            minimumWidth = 58
+            contentDescription = context.getString(R.string.quick_start)
+            isClickable = true
+            isFocusable = true
+            setOnClickListener { onQuickStart(chain) }
+            addView(ImageView(context).apply {
+                setImageResource(android.R.drawable.ic_media_play)
+                imageTintList = ColorStateList.valueOf(accentColor)
+                contentDescription = context.getString(R.string.quick_start)
+                setPadding(12, 12, 4, 12)
+                scaleX = 2f
+                scaleY = 2f
+            }, LinearLayout.LayoutParams(58, 58))
+        }, LinearLayout.LayoutParams(0, -1, 0.18f))
         row.setOnClickListener { onOpen(chain, state) }; details.setOnClickListener { onOpen(chain, state) }
         return card(row).apply { radius = 22f; strokeWidth = 2; strokeColor = borderColor; isClickable = true; isFocusable = true; setOnClickListener { onOpen(chain, state) } }
     }

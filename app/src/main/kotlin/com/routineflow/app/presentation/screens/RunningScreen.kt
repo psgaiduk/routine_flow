@@ -14,6 +14,7 @@ import com.routineflow.app.model.Action
 import com.routineflow.app.model.Chain
 import com.routineflow.app.model.RunningAction
 import com.routineflow.app.presentation.TimeFormatter
+import com.routineflow.app.presentation.ScreenLayout
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -82,8 +83,9 @@ class RunningScreen(
         if (canGoBack) root.addView(secondaryButton(context.getString(R.string.running_back_step), onBack))
         root.addView(secondaryButton(context.getString(R.string.running_reset), onReset).apply { tag = "running_reset_button" }); root.addView(secondaryButton(context.getString(R.string.running_postpone), onPostpone))
         val nextCard = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL; setPadding(20, 16, 20, 16) }; nextCard.addView(TextView(context).apply { text = context.getString(R.string.running_next); textSize = 14f; setTextColor(secondaryColor) }); nextCard.addView(TextView(context).apply { text = next?.title ?: context.getString(R.string.running_last_step); textSize = 20f; setTextColor(textColor); setPadding(0, 6, 0, 0) }); root.addView(card(nextCard))
-        val bottom = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL; setPadding(0, 12, 0, 0) }; bottom.addView(TextView(context).apply { text = context.getString(R.string.running_end, SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(current.estimatedEndMillis))); textSize = 14f; gravity = Gravity.CENTER; setTextColor(secondaryColor); setPadding(0, 0, 0, 8) })
-        val controls = LinearLayout(context).apply { gravity = Gravity.CENTER_VERTICAL }; val pause = controlButton(if (current.paused) context.getString(R.string.running_resume) else context.getString(R.string.running_pause), false, 14f, onPauseResume); controls.addView(pause, LinearLayout.LayoutParams(0, 150, 1f)); controls.addView(controlButton("✓", true, 28f, onComplete), LinearLayout.LayoutParams(0, 150, 1f)); controls.addView(controlButton(context.getString(R.string.running_skip), false, 14f, onSkip), LinearLayout.LayoutParams(0, 150, 1f)); bottom.addView(controls); root.addView(Space(context), LinearLayout.LayoutParams(1, 0, 1f)); root.addView(bottom, LinearLayout.LayoutParams(-1, 210))
+        root.addView(TextView(context).apply { text = context.getString(R.string.running_end, SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(current.estimatedEndMillis))); textSize = 14f; gravity = Gravity.CENTER; setTextColor(secondaryColor); setPadding(0, 12, 0, 8) })
+        val bottom = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
+        val controls = LinearLayout(context).apply { gravity = Gravity.CENTER_VERTICAL }; val pause = controlButton(if (current.paused) context.getString(R.string.running_resume) else context.getString(R.string.running_pause), false, 14f, onPauseResume); controls.addView(pause, LinearLayout.LayoutParams(0, ScreenLayout.BOTTOM_MENU_HEIGHT_PX, 1f)); controls.addView(controlButton("✓", true, 28f, onComplete), LinearLayout.LayoutParams(0, ScreenLayout.BOTTOM_MENU_HEIGHT_PX, 1f)); controls.addView(controlButton(context.getString(R.string.running_skip), false, 14f, onSkip), LinearLayout.LayoutParams(0, ScreenLayout.BOTTOM_MENU_HEIGHT_PX, 1f)); bottom.addView(controls, LinearLayout.LayoutParams(-1, ScreenLayout.BOTTOM_MENU_HEIGHT_PX)); root.addView(Space(context), LinearLayout.LayoutParams(1, 0, 1f)); root.addView(bottom, LinearLayout.LayoutParams(-1, ScreenLayout.BOTTOM_MENU_HEIGHT_PX))
         return RunningScreenResult(root, timer, progress, pause)
     }
 }

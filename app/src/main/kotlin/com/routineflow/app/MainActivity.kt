@@ -158,7 +158,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun bottomActionButton(text: String, primary: Boolean, textSizeSp: Float = 14f, onClick: () -> Unit) = MaterialButton(this).apply {
-        this.text = text; isAllCaps = false; cornerRadius = 8; setTextSize(textSizeSp); gravity = Gravity.CENTER; insetTop = 0; insetBottom = 0; minHeight = 144; elevation = 0f; stateListAnimator = null
+        this.text = text; isAllCaps = false; cornerRadius = 8; setTextSize(textSizeSp); gravity = Gravity.CENTER; insetTop = 0; insetBottom = 0; minHeight = ScreenLayout.BOTTOM_MENU_HEIGHT_PX; elevation = 0f; stateListAnimator = null
         backgroundTintList = ColorStateList.valueOf(if (primary) accent else softSurface)
         setTextColor(if (primary) 0xffffffff.toInt() else darkText)
         setOnClickListener { onClick() }
@@ -281,12 +281,12 @@ class MainActivity : AppCompatActivity() {
             val item = MaterialButton(this@MainActivity).apply {
                 text = label; isAllCaps = false; textSize = 14f; cornerRadius = 8
                 this.icon = getDrawable(iconRes); iconGravity = MaterialButton.ICON_GRAVITY_TEXT_TOP; iconPadding = 14; iconSize = 64
-                minHeight = 144; minWidth = 0; setPadding(4, 12, 4, 12); insetTop = 0; insetBottom = 0; elevation = 0f; stateListAnimator = null
+                minHeight = ScreenLayout.BOTTOM_MENU_HEIGHT_PX; minWidth = 0; setPadding(4, 12, 4, 12); insetTop = 0; insetBottom = 0; elevation = 0f; stateListAnimator = null
                 backgroundTintList = ColorStateList.valueOf(if (selected) accent else android.graphics.Color.TRANSPARENT)
                 iconTint = ColorStateList.valueOf(foreground); setTextColor(foreground)
                 setOnClickListener { viewModel.selectTab(tab); render(viewModel.state.value) }
             }
-            addView(item, LinearLayout.LayoutParams(0, 150, 1f))
+            addView(item, LinearLayout.LayoutParams(0, ScreenLayout.BOTTOM_MENU_HEIGHT_PX, 1f))
         }
         add(getString(R.string.tab_run), android.R.drawable.ic_media_play, AppTab.RUN)
         add(getString(R.string.tab_chains), android.R.drawable.ic_menu_sort_by_size, AppTab.CHAINS)
@@ -295,7 +295,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun addBottomNav(root: LinearLayout, active: AppTab) {
         root.addView(Space(this), LinearLayout.LayoutParams(1, 0, 1f))
-        root.addView(bottomNav(active), LinearLayout.LayoutParams(-1, 158))
+        root.addView(bottomNav(active), LinearLayout.LayoutParams(-1, ScreenLayout.BOTTOM_MENU_HEIGHT_PX))
     }
 
     private fun showChain(state: AppState, chain: Chain) {
@@ -324,7 +324,7 @@ class MainActivity : AppCompatActivity() {
 
         fun item(iconRes: Int, label: String, primary: Boolean, onClick: () -> Unit) = MaterialButton(this@MainActivity).apply {
             text = label; isAllCaps = false; textSize = if (label.isEmpty()) 20f else 14f
-            gravity = Gravity.CENTER; cornerRadius = 8; minHeight = 150; minWidth = 0
+            gravity = Gravity.CENTER; cornerRadius = 8; minHeight = ScreenLayout.BOTTOM_MENU_HEIGHT_PX; minWidth = 0
             insetTop = 0; insetBottom = 0; elevation = 0f; stateListAnimator = null
             icon = getDrawable(iconRes); iconGravity = if (label.isEmpty()) MaterialButton.ICON_GRAVITY_TEXT_START else MaterialButton.ICON_GRAVITY_TEXT_TOP
             iconSize = if (label.isEmpty()) 42 else 36; iconPadding = 10
@@ -336,13 +336,13 @@ class MainActivity : AppCompatActivity() {
 
         addView(item(R.drawable.ic_arrow_back, "", false) {
             viewModel.selectTab(AppTab.CHAINS); render(state)
-        }, LinearLayout.LayoutParams(0, 150, 1f))
+        }, LinearLayout.LayoutParams(0, ScreenLayout.BOTTOM_MENU_HEIGHT_PX, ScreenLayout.CHAIN_EDITOR_SIDE_MENU_WEIGHT))
         addView(item(R.drawable.ic_add, getString(R.string.add_action), true) {
             newActionDialog(chain)
-        }, LinearLayout.LayoutParams(0, 150, 2f))
+        }, LinearLayout.LayoutParams(0, ScreenLayout.BOTTOM_MENU_HEIGHT_PX, ScreenLayout.CHAIN_EDITOR_CENTER_MENU_WEIGHT))
         addView(item(R.drawable.ic_delete, "", false) {
             confirmDeleteChain(chain)
-        }, LinearLayout.LayoutParams(0, 150, 1f))
+        }, LinearLayout.LayoutParams(0, ScreenLayout.BOTTOM_MENU_HEIGHT_PX, ScreenLayout.CHAIN_EDITOR_SIDE_MENU_WEIGHT))
     }
 
     private fun newChainDialog() {

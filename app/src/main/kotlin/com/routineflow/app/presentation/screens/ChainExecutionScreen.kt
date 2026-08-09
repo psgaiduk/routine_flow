@@ -10,6 +10,7 @@ import com.routineflow.app.model.Action
 import com.routineflow.app.model.AppState
 import com.routineflow.app.model.Chain
 import com.routineflow.app.presentation.TimeFormatter
+import com.routineflow.app.presentation.ScreenLayout
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -49,13 +50,13 @@ class ChainExecutionScreen(
         val running = state.running?.takeIf { it.chainId == chain.id }
         val bottom = LinearLayout(context).apply { gravity = Gravity.CENTER_VERTICAL; background = android.graphics.drawable.GradientDrawable().apply { setColor(softSurfaceColor) } }
         if (allCompleted) {
-            bottom.addView(bottomButton(context.getString(R.string.run_back), false, 16f, onBack), LinearLayout.LayoutParams(-1, 150))
+            bottom.addView(bottomButton(context.getString(R.string.run_back), false, 16f, onBack), LinearLayout.LayoutParams(-1, ScreenLayout.BOTTOM_MENU_HEIGHT_PX))
         } else {
-            bottom.addView(TextView(context).apply { text = "✕"; textSize = 14f; gravity = Gravity.CENTER; setTextColor(darkTextColor); isClickable = true; background = android.graphics.drawable.GradientDrawable().apply { cornerRadius = 8f; setColor(softSurfaceColor) }; setOnClickListener { onBack() } }, LinearLayout.LayoutParams(144, 150))
+            bottom.addView(TextView(context).apply { text = "✕"; textSize = 14f; gravity = Gravity.CENTER; setTextColor(darkTextColor); isClickable = true; background = android.graphics.drawable.GradientDrawable().apply { cornerRadius = 8f; setColor(softSurfaceColor) }; setOnClickListener { onBack() } }, LinearLayout.LayoutParams(0, ScreenLayout.BOTTOM_MENU_HEIGHT_PX, 1f))
             val startLabel = if (running != null) TimeFormatter.duration(running.remainingSeconds) else context.getString(R.string.run_start)
-            bottom.addView(bottomButton(startLabel, true, 14f, onStart), LinearLayout.LayoutParams(0, 150, 1f))
+            bottom.addView(bottomButton(startLabel, true, 14f, onStart), LinearLayout.LayoutParams(0, ScreenLayout.BOTTOM_MENU_HEIGHT_PX, 3f))
         }
-        root.addView(Space(context), LinearLayout.LayoutParams(1, 0, 1f)); root.addView(bottom, LinearLayout.LayoutParams(-1, 158))
+        root.addView(Space(context), LinearLayout.LayoutParams(1, 0, 1f)); root.addView(bottom, LinearLayout.LayoutParams(-1, ScreenLayout.BOTTOM_MENU_HEIGHT_PX))
         return root
     }
 }

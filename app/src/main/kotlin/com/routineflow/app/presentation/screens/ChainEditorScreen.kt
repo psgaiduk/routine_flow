@@ -10,6 +10,7 @@ import com.routineflow.app.model.Action
 import com.routineflow.app.model.AppState
 import com.routineflow.app.model.Chain
 import com.routineflow.app.presentation.RecurrenceDisplayFormatter
+import com.routineflow.app.presentation.ScreenLayout
 import com.routineflow.app.presentation.TimeFormatter
 import com.routineflow.app.presentation.components.ReorderDragController
 
@@ -38,7 +39,7 @@ class ChainEditorScreen(
         if (chain.actions.isEmpty()) root.addView(TextView(context).apply { text = context.getString(R.string.chain_empty); setPadding(0, 20, 0, 10) })
         chain.actions.forEachIndexed { index, action -> root.addView(actionCard(chain, index, action), LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = 10 }) }
         root.addView(reorder.endDropZone { id -> onMoveActionToEnd(chain, id) }, LinearLayout.LayoutParams(-1, 10))
-        root.addView(Space(context), LinearLayout.LayoutParams(1, 0, 1f)); root.addView(settingsBar(state, chain), LinearLayout.LayoutParams(-1, 158))
+        root.addView(Space(context), LinearLayout.LayoutParams(1, 0, 1f)); root.addView(settingsBar(state, chain), LinearLayout.LayoutParams(-1, ScreenLayout.BOTTOM_MENU_HEIGHT_PX))
         return root
     }
 

@@ -80,6 +80,30 @@ class MainUserFlowsTest {
     }
 
     @Test
+    fun quickStartAreaIsWideEnoughAndStartsChain() {
+        val chain = "UI quick chain $suffix"
+        val action = "UI quick action $suffix"
+        createChain(chain)
+        addAction(chain, action)
+        onView(withText(R.string.tab_run)).perform(click())
+
+        onView(withText(chain)).check { chainTitle, _ ->
+            val card = chainTitle.parent?.parent?.parent as? android.view.View
+                ?: error("Chain card is missing")
+            val quickArea = card.findViewWithTag<android.view.View>("quick_start_area")
+                ?: error("Quick-start area is missing")
+            val areaBounds = Rect()
+            val cardBounds = Rect()
+            quickArea.getGlobalVisibleRect(areaBounds)
+            card.getGlobalVisibleRect(cardBounds)
+            val ratio = areaBounds.width().toFloat() / cardBounds.width().toFloat()
+            check(ratio in 0.15f..0.20f) { "Expected quick-start area to occupy 15–20% of card, got $ratio" }
+            quickArea.performClick()
+        }
+        onView(withText(action)).check(matches(isDisplayed()))
+    }
+
+    @Test
     fun previousStepButtonAppearsAfterCompletingFirstStep() {
         val chain = "UI back chain $suffix"
         val firstAction = "UI first step $suffix"

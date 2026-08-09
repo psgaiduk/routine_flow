@@ -24,6 +24,19 @@ class ScreenLayoutTest {
     }
 
     @Test
+    fun allBottomMenusUseSharedScaledDimensions() {
+        assertEquals(200, ScreenLayout.BOTTOM_MENU_HEIGHT_PX)
+    }
+
+    @Test
+    fun chainEditorMenuUsesTwentyFiveFiftyTwentyFiveWidthSplit() {
+        val totalWeight = ScreenLayout.CHAIN_EDITOR_SIDE_MENU_WEIGHT * 2 + ScreenLayout.CHAIN_EDITOR_CENTER_MENU_WEIGHT
+
+        assertEquals(25f, ScreenLayout.CHAIN_EDITOR_SIDE_MENU_WEIGHT / totalWeight * 100f, 0.001f)
+        assertEquals(50f, ScreenLayout.CHAIN_EDITOR_CENTER_MENU_WEIGHT / totalWeight * 100f, 0.001f)
+    }
+
+    @Test
     fun durationPickerBalancesActiveValueWithoutClippingShift() {
         val picker = CompactPicker(
             ApplicationProvider.getApplicationContext(),
