@@ -25,6 +25,6 @@ class MainActivitySmokeTest {
     @Test
     fun chainsTabOpens() {
         onView(withText(R.string.tab_chains)).perform(click())
-        onView(withText(R.string.chains_subtitle)).check(matches(isDisplayed()))
+        onView(withText(R.string.tab_chains)).check(matches(isDisplayed()))
     }
 }

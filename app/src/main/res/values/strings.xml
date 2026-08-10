@@ -4,7 +4,6 @@
     <string name="tab_run">Запуск</string>
     <string name="tab_chains">Цепочки</string>
     <string name="tab_stats">Статистика</string>
-    <string name="chains_subtitle">Цепочки и расписания</string>
     <string name="chain_settings">Настройки цепочек</string>
     <string name="save_settings">Сохранить настройки</string>
     <string name="load_settings">Загрузить настройки</string>
@@ -23,7 +22,6 @@
     <string name="run_no_active_chains">Активных цепочек нет</string>
     <string name="run_completed_expand">Завершённые цепочки (%1$d) ▾</string>
     <string name="run_completed_collapse">Завершённые цепочки (%1$d) ▴</string>
-    <string name="run_subtitle">Запускайте цепочку — действия выполнятся последовательно</string>
     <string name="run_step">%1$s\nШаг %2$d из %3$d: %4$s</string>
     <string name="run_progress">%1$s\nВыполнено: %2$d из %3$d</string>
     <string name="run_done">✓ Готово</string>

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.10.10 — 2026-08-10
+
+- Removed introductory helper text from the Run and Chains screens.
+- Updated UI regression tests for both screens.
+
 ## 2.10.9 — 2026-08-10
 
 - Saved the actual duration of completed activities.

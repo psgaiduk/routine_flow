@@ -29,7 +29,13 @@ class RunScreen(
         val today = state.chains.filter { chain -> chain.actions.any(isDue) }
         val completed = today.filter { chain -> chain.actions.filter(isDue).all { it.doneOn == todayKey } }
         val active = today - completed.toSet()
-        root.addView(TextView(context).apply { text = if (active.isEmpty()) { if (completed.isEmpty()) context.getString(R.string.run_no_chains) else context.getString(R.string.run_no_active_chains) } else context.getString(R.string.run_subtitle); textSize = 15f; setPadding(0, 0, 0, 12) })
+        if (active.isEmpty()) {
+            root.addView(TextView(context).apply {
+                text = if (completed.isEmpty()) context.getString(R.string.run_no_chains) else context.getString(R.string.run_no_active_chains)
+                textSize = 15f
+                setPadding(0, 0, 0, 12)
+            })
+        }
         active.forEach { root.addView(chainCard(it, state), LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = 12 }) }
         if (completed.isNotEmpty()) {
             root.addView(TextView(context).apply { text = context.getString(if (isCompletedExpanded()) R.string.run_completed_collapse else R.string.run_completed_expand, completed.size); textSize = 16f; setTypeface(typeface, android.graphics.Typeface.BOLD); setTextColor(textColor); setPadding(4, 20, 4, 12); isClickable = true; setOnClickListener { onToggleCompleted() } })

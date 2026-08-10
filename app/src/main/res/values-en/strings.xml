@@ -4,7 +4,6 @@
     <string name="tab_run">Run</string>
     <string name="tab_chains">Chains</string>
     <string name="tab_stats">Statistics</string>
-    <string name="chains_subtitle">Chains and schedules</string>
     <string name="chain_settings">Chain settings</string>
     <string name="save_settings">Save settings</string>
     <string name="load_settings">Load settings</string>
@@ -23,7 +22,6 @@
     <string name="run_no_active_chains">No active chains</string>
     <string name="run_completed_expand">Completed chains (%1$d) ▾</string>
     <string name="run_completed_collapse">Completed chains (%1$d) ▴</string>
-    <string name="run_subtitle">Start a chain — actions will run one after another</string>
     <string name="run_step">%1$s\nStep %2$d of %3$d: %4$s</string>
     <string name="run_progress">%1$s\nCompleted: %2$d of %3$d</string>
     <string name="run_done">✓ Done</string>

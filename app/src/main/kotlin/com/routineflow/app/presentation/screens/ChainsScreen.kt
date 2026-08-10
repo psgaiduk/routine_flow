@@ -31,7 +31,6 @@ class ChainsScreen(
         header.addView(TextView(context).apply { text = context.getString(R.string.tab_chains); textSize = 30f; setTypeface(typeface, android.graphics.Typeface.BOLD); setTextColor(textColor) }, LinearLayout.LayoutParams(0, -2, 1f))
         header.addView(ImageButton(context).apply { setImageResource(R.drawable.ic_settings); imageTintList = ColorStateList.valueOf(textColor); background = null; contentDescription = context.getString(R.string.chain_settings); setPadding(8, 8, 8, 8); setOnClickListener { onSettings(this) } }, LinearLayout.LayoutParams(56, 56).apply { marginEnd = 8 })
         root.addView(header)
-        root.addView(TextView(context).apply { text = context.getString(R.string.chains_subtitle); textSize = 16f; setPadding(0, 12, 0, 8) })
         chains.forEach { chain -> root.addView(chainCard(chain), LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = 12 }) }
         root.addView(reorder.endDropZone(onMoveToEnd), LinearLayout.LayoutParams(-1, 10))
         root.addView(MaterialButton(context).apply { text = "＋  ${context.getString(R.string.new_chain)}"; isAllCaps = false; cornerRadius = 18; setOnClickListener { onNew() } })
