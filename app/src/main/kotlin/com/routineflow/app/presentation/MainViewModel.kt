@@ -81,7 +81,8 @@ class MainViewModel @Inject constructor(
         chains.map { chain -> if (chain.id == chainId) chain.copy(actions = chain.actions.map { action ->
             if (action.id == actionId) action.copy(
                 doneOn = if (checked) dateKey else null,
-                executionStatus = if (checked) "DONE" else null
+                executionStatus = if (checked) "DONE" else null,
+                actualDurationSeconds = null
             ) else action
         }) else chain }
     }
@@ -178,7 +179,7 @@ class MainViewModel @Inject constructor(
                 }
                 if (postponed) continue
                 running.value = RunningAction(chainId, action.id, action.durationSeconds.toLong(), 0L, estimatedEndMillis)
-                completeAction(chainId, action.id, completionStatus)
+                completeAction(chainId, action.id, completionStatus, elapsed)
                 completedSteps.add(CompletedStep(action, elapsed))
                 completionStatus = "DONE"
                 estimatedEndMillis = System.currentTimeMillis() + pending.sumOf { it.durationSeconds }.toLong() * 1000L
@@ -229,16 +230,16 @@ class MainViewModel @Inject constructor(
         running.value?.let { current -> running.value = current.copy(paused = false) }
     }
 
-    private suspend fun completeAction(chainId: Long, actionId: Long, status: String) {
+    private suspend fun completeAction(chainId: Long, actionId: Long, status: String, actualDurationSeconds: Long) {
         repository.replace(repository.chains.value.map { chain ->
-            if (chain.id == chainId) chain.copy(actions = chain.actions.map { action -> if (action.id == actionId) action.copy(doneOn = dateKey, executionStatus = status) else action }) else chain
+            if (chain.id == chainId) chain.copy(actions = chain.actions.map { action -> if (action.id == actionId) action.copy(doneOn = dateKey, executionStatus = status, actualDurationSeconds = actualDurationSeconds) else action }) else chain
         })
     }
 
     private suspend fun clearActionCompletion(chainId: Long, actionId: Long) {
         repository.replace(repository.chains.value.map { chain ->
             if (chain.id == chainId) chain.copy(actions = chain.actions.map { action ->
-                if (action.id == actionId) action.copy(doneOn = null, executionStatus = null) else action
+                if (action.id == actionId) action.copy(doneOn = null, executionStatus = null, actualDurationSeconds = null) else action
             }) else chain
         })
     }

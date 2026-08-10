@@ -27,6 +27,7 @@
     <string name="run_step">%1$s\nStep %2$d of %3$d: %4$s</string>
     <string name="run_progress">%1$s\nCompleted: %2$d of %3$d</string>
     <string name="run_done">✓ Done</string>
+    <string name="run_action_duration">%2$s (%1$s)</string>
     <string name="run_start">Start</string>
     <string name="quick_start">Quick start</string>
     <string name="run_back">Back</string>

@@ -59,7 +59,7 @@ app/src/main/kotlin/com/routineflow/app/
 │   ├── LocalChainRepository.kt
 │   │   └── StateFlow и сохранение во внутренний файл приложения
 │   └── RoutineFlowJsonCodec.kt
-│       └── кодирование JSON v2 и чтение старого формата
+│       └── кодирование JSON v3 и чтение старого формата
 │
 ├── domain/
 │   ├── GetTodayActionsUseCase.kt
@@ -181,11 +181,11 @@ INTERVAL:1:MONTHS:WEEKDAY:FIRST:Пн
 
 ## Формат JSON
 
-Новый экспорт использует версию 2:
+Новый экспорт использует версию 3:
 
 ```json
 {
-  "version": 2,
+  "version": 3,
   "chains": [
     {
       "id": 1,
@@ -197,7 +197,8 @@ INTERVAL:1:MONTHS:WEEKDAY:FIRST:Пн
           "recurrence": "DAILY",
           "durationSeconds": 60,
           "doneOn": null,
-          "executionStatus": null
+          "executionStatus": null,
+          "actualDurationSeconds": null
         }
       ]
     }
@@ -222,7 +223,7 @@ Unit-тесты находятся в `app/src/test`:
 
 - `RecurrenceStrategyTest` — расчёт ежедневных, недельных и месячных повторений;
 - `RecurrenceRuleParserTest` — разбор типовых и неизвестных правил;
-- `RoutineFlowJsonCodecTest` — JSON v2, legacy JSON и `durationMinutes`;
+- `RoutineFlowJsonCodecTest` — JSON v3, legacy JSON и `durationMinutes`;
 - `ReorderItemsTest` — перестановка вверх, вниз и обработка неверных индексов;
 - `TimeFormatterTest` — форматирование времени;
 - `MainViewModelTest` — CRUD, сортировка, импорт и навигация.

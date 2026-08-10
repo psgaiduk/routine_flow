@@ -122,6 +122,7 @@ class MainViewModelTest {
             advanceTimeBy(1_000)
             runCurrent()
             assertEquals(12L, viewModel.state.value.running?.actionId)
+            assertEquals(elapsedBeforeCompletion, repository.chains.value.single().actions.first().actualDurationSeconds)
 
             viewModel.rewindCurrent()
             advanceTimeBy(1_000)

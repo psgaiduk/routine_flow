@@ -27,7 +27,8 @@ class RoutineFlowJsonCodec {
                     RecurrenceRuleCodec.parse(jsonAction.getString("recurrence")),
                     durationSeconds,
                     jsonAction.optString("doneOn").takeUnless { it.isBlank() || it == "null" },
-                    jsonAction.optString("executionStatus").takeUnless { it.isBlank() || it == "null" }
+                    jsonAction.optString("executionStatus").takeUnless { it.isBlank() || it == "null" },
+                    jsonAction.optLong("actualDurationSeconds").takeIf { jsonAction.has("actualDurationSeconds") && !jsonAction.isNull("actualDurationSeconds") }
                 )
             }
             Chain(jsonChain.getLong("id"), jsonChain.getString("name"), actions)
@@ -50,6 +51,7 @@ class RoutineFlowJsonCodec {
                             put("durationSeconds", action.durationSeconds)
                             put("doneOn", action.doneOn ?: JSONObject.NULL)
                             put("executionStatus", action.executionStatus ?: JSONObject.NULL)
+                            put("actualDurationSeconds", action.actualDurationSeconds ?: JSONObject.NULL)
                         })
                     }
                 })
@@ -58,5 +60,5 @@ class RoutineFlowJsonCodec {
         return root.toString()
     }
 
-    private companion object { const val JSON_VERSION = 2 }
+    private companion object { const val JSON_VERSION = 3 }
 }

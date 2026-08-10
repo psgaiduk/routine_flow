@@ -13,7 +13,7 @@ class RoutineFlowJsonCodecTest {
     @Test
     fun roundTripPreservesOrderAndFields() {
         val source = listOf(
-            Chain(10L, "Morning", listOf(Action(11L, "Water", RecurrenceRuleCodec.parse("INTERVAL:1:WEEKS:WEEKDAYS:Пн,Ср"), 75, "2026-08-08", "DONE"))),
+            Chain(10L, "Morning", listOf(Action(11L, "Water", RecurrenceRuleCodec.parse("INTERVAL:1:WEEKS:WEEKDAYS:Пн,Ср"), 75, "2026-08-08", "DONE", 92L))),
             Chain(20L, "Evening")
         )
 
@@ -32,7 +32,7 @@ class RoutineFlowJsonCodecTest {
     @Test
     fun emptyListIsEncodedAsVersionedDocument() {
         val encoded = codec.encode(emptyList())
-        assertTrue(encoded.contains("\"version\":2"))
+        assertTrue(encoded.contains("\"version\":3"))
         assertTrue(encoded.contains("\"chains\":[]"))
     }
 
@@ -40,5 +40,12 @@ class RoutineFlowJsonCodecTest {
     fun readsLegacyRootArray() {
         val result = codec.decode("[{\"id\":7,\"name\":\"Old\",\"actions\":[]}]")
         assertEquals("Old", result.single().name)
+    }
+
+    @Test
+    fun oldActionsWithoutActualDurationRemainCompatible() {
+        val result = codec.decode("[{\"id\":1,\"name\":\"Legacy\",\"actions\":[{\"id\":2,\"title\":\"Step\",\"recurrence\":\"NONE\",\"durationSeconds\":60}]}]")
+
+        assertEquals(null, result.single().actions.single().actualDurationSeconds)
     }
 }

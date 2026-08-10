@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.10.9 — 2026-08-10
+
+- Saved the actual duration of completed activities.
+- Completed activities now show actual duration followed by planned duration in parentheses.
+- Updated the JSON format to version 3 while preserving compatibility with older data.
+- Added unit and UI regression tests.
+
 ## 2.10.8 — 2026-08-10
 
 - Removed the forced 700 ms limit from notification sound playback.

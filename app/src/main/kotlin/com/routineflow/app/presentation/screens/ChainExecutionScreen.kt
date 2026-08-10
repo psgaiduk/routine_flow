@@ -41,7 +41,10 @@ class ChainExecutionScreen(
         actions.forEachIndexed { index, action ->
             val completed = action.doneOn == todayKey
             val row = LinearLayout(context).apply { gravity = Gravity.CENTER_VERTICAL }
-            row.addView(TextView(context).apply { text = "${index + 1}. ${action.title}\n${TimeFormatter.duration(action.durationSeconds.toLong())}"; textSize = 17f; setPadding(8, 12, 8, 12) }, LinearLayout.LayoutParams(0, -2, 1f))
+            val durationText = action.actualDurationSeconds?.let { actual ->
+                context.getString(R.string.run_action_duration, TimeFormatter.duration(action.durationSeconds.toLong()), TimeFormatter.duration(actual))
+            } ?: TimeFormatter.duration(action.durationSeconds.toLong())
+            row.addView(TextView(context).apply { text = "${index + 1}. ${action.title}\n$durationText"; textSize = 17f; setPadding(8, 12, 8, 12) }, LinearLayout.LayoutParams(0, -2, 1f))
             row.addView(circleToggle(completed, action.executionStatus == "SKIPPED") { checked, view ->
                 onToggle(chain, action, checked, allCompleted, view)
             }, LinearLayout.LayoutParams(48, 48).apply { marginStart = 12 })
