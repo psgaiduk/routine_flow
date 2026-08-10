@@ -7,8 +7,6 @@ import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.os.Build
-import android.os.Handler
-import android.os.Looper
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.routineflow.app.R
@@ -71,22 +69,21 @@ class OvertimeNotifier @Inject constructor(@ApplicationContext private val conte
 
     private fun playAlarmSignal() {
         runCatching {
-            val player = MediaPlayer().apply {
+            val player = MediaPlayer()
+            val playback = AlarmSignalPlayback(
+                start = { player.start() },
+                release = { player.release() }
+            )
+            player.setOnCompletionListener { playback.onCompletion() }
+            player.apply {
                 setAudioAttributes(AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_ALARM)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                     .build())
                 setDataSource(context, alertSound)
-                setOnCompletionListener { it.release() }
             }
             player.setOnPreparedListener {
-                it.start()
-                Handler(Looper.getMainLooper()).postDelayed({
-                    runCatching {
-                        if (it.isPlaying) it.stop()
-                        it.release()
-                    }
-                }, 700L)
+                playback.onPrepared()
             }
             player.prepareAsync()
         }

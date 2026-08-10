@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.10.8 — 2026-08-10
+
+- Removed the forced 700 ms limit from notification sound playback.
+- Added a regression test for sound playback lifecycle.
+
+## 2.10.7 — 2026-08-10
+
+- First overtime reminder interval is now calculated as 20% of the action duration, with a 30-second minimum.
+- Added regression tests for reminder interval calculation.
+
 ## 2.10.6 — 2026-08-09
 
 - Настроен отступ `6 px` между кнопкой `Do later` и карточкой `Next step` в `RunningScreen`.
