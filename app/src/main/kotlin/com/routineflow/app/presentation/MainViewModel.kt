@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.routineflow.app.data.ChainRepository
 import com.routineflow.app.domain.GetTodayActionsUseCase
+import com.routineflow.app.domain.OvertimeReminderSchedule
 import com.routineflow.app.domain.moveItem
 import com.routineflow.app.domain.RecurrenceRuleCodec
 import com.routineflow.app.domain.RoutineDay
@@ -131,7 +132,7 @@ class MainViewModel @Inject constructor(
                 var postponed = false
                 var overtimeSignalSent = false
                 var reminderNumber = 0
-                var reminderInterval = 30L
+                var reminderInterval = OvertimeReminderSchedule.firstReminderDelaySeconds(action.durationSeconds.toLong())
                 var nextReminderAt = action.durationSeconds.coerceAtLeast(1).toLong() + reminderInterval
                 while (true) {
                     while (running.value?.paused == true) {
