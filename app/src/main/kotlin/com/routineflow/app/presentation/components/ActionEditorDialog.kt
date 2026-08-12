@@ -10,14 +10,16 @@ import com.routineflow.app.R
 import com.routineflow.app.model.Action
 import com.routineflow.app.model.Chain
 import com.routineflow.app.domain.RecurrenceRuleCodec
+import com.routineflow.app.notifications.ActionSpeech
 
 class ActionEditorDialog(
     private val context: android.content.Context,
     private val textColor: Int,
     private val inputSurfaceColor: Int,
     private val borderColor: Int,
+    private val actionSpeech: ActionSpeech,
     private val showDeleteError: (Chain, Action) -> Unit,
-    private val save: (Chain, Action?, String, String, Int) -> Unit
+    private val save: (Chain, Action?, String, String, Int, String?) -> Unit
 ) {
     fun show(chain: Chain, existing: Action?) {
         val box = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL; setPadding(24, 20, 24, 8) }
@@ -25,6 +27,19 @@ class ActionEditorDialog(
         box.addView(header(context.getString(R.string.action_name)))
         val title = EditText(context).apply { tag = "action_title_input"; setText(existing?.title ?: ""); inputType = InputType.TYPE_CLASS_TEXT; setSingleLine(true); textSize = 16f; background = null; gravity = Gravity.CENTER_VERTICAL; setPadding(0, 0, 0, 0) }
         box.addView(LinearLayout(context).apply { orientation = LinearLayout.VERTICAL; addView(title, LinearLayout.LayoutParams(-1, 48)); addView(View(context).apply { setBackgroundColor(0xff94a3b8.toInt()) }, LinearLayout.LayoutParams(-1, 1)) }, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = 14 })
+
+        var speechKey: String? = existing?.speechKey?.takeIf { it == actionSpeech.keyFor(title.text.toString()) }
+        val soundCheck = CheckBox(context).apply {
+            text = context.getString(R.string.action_add_sound)
+            isChecked = speechKey != null
+        }
+        box.addView(soundCheck, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = 8 })
+        val soundStatus = TextView(context).apply {
+            text = if (speechKey != null) context.getString(R.string.action_sound_ready) else ""
+            textSize = 13f
+            setTextColor(0xff64748b.toInt())
+        }
+        box.addView(soundStatus, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = 8 })
 
         val duration = existing?.durationSeconds ?: 60
         val hours = CompactPicker(context, 0, 2, (duration / 3600).coerceAtMost(2), true, textColor)
@@ -54,8 +69,36 @@ class ActionEditorDialog(
                 return@setOnClickListener
             }
             val totalSeconds = hours.value * 3600 + minutes.value * 60 + seconds.value
-            title.text.toString().trim().takeIf(String::isNotEmpty)?.let { save(chain, existing, it, selected, totalSeconds.coerceAtLeast(1)) }
+            title.text.toString().trim().takeIf(String::isNotEmpty)?.let { save(chain, existing, it, selected, totalSeconds.coerceAtLeast(1), speechKey) }
             dialog.dismiss()
+        }
+        val saveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+        var updatingSoundCheck = false
+        fun refreshSoundState() {
+            val valid = speechKey == actionSpeech.keyFor(title.text.toString().trim())
+            if (!valid) speechKey = null
+            saveButton.isEnabled = !soundCheck.isChecked || valid
+            soundStatus.text = if (valid && soundCheck.isChecked) context.getString(R.string.action_sound_ready) else ""
+        }
+        title.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { soundCheck.isChecked = false; refreshSoundState() }
+            override fun afterTextChanged(s: android.text.Editable?) = Unit
+        })
+        soundCheck.setOnCheckedChangeListener { _, checked ->
+            if (updatingSoundCheck) return@setOnCheckedChangeListener
+            if (!checked) { speechKey = null; soundStatus.text = ""; saveButton.isEnabled = true; return@setOnCheckedChangeListener }
+            saveButton.isEnabled = false
+            soundStatus.text = context.getString(R.string.action_sound_generating)
+            actionSpeech.generate(title.text.toString().trim()) { generatedKey ->
+                speechKey = generatedKey
+                updatingSoundCheck = true
+                soundCheck.isChecked = generatedKey != null
+                updatingSoundCheck = false
+                saveButton.isEnabled = generatedKey != null
+                soundStatus.text = if (generatedKey != null) context.getString(R.string.action_sound_ready) else context.getString(R.string.action_sound_error)
+                if (generatedKey == null) Toast.makeText(context, R.string.action_sound_error, Toast.LENGTH_SHORT).show()
+            }
         }
     }
 

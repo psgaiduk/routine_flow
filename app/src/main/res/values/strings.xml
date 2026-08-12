@@ -42,6 +42,10 @@
     <string name="drag_hint">Перетащите карточку на нужное место</string>
     <string name="reorder_chains">Изменить порядок цепочек</string>
     <string name="action_name">Название действия</string>
+    <string name="action_add_sound">Добавить озвучку действия</string>
+    <string name="action_sound_error">Не удалось создать озвучку</string>
+    <string name="action_sound_generating">Создание озвучки…</string>
+    <string name="action_sound_ready">Озвучка готова</string>
     <string name="hours">Часы</string>
     <string name="minutes">Минуты</string>
     <string name="seconds">Секунды</string>

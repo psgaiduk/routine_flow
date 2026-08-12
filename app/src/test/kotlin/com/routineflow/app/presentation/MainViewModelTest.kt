@@ -7,6 +7,7 @@ import com.routineflow.app.model.Action
 import com.routineflow.app.model.Chain
 import com.routineflow.app.model.RecurrenceRule
 import com.routineflow.app.notifications.RoutineNotifier
+import com.routineflow.app.notifications.ActionSpeech
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,7 +36,7 @@ class MainViewModelTest {
     fun setUp() {
         Dispatchers.setMain(dispatcher)
         repository = FakeRepository()
-        viewModel = MainViewModel(repository, GetTodayActionsUseCase(), FakeNotifier())
+        viewModel = MainViewModel(repository, GetTodayActionsUseCase(), FakeNotifier(), FakeSpeech())
     }
 
     @After
@@ -150,5 +151,13 @@ class MainViewModelTest {
         override fun notifyOvertime(chainName: String, actionName: String, reminderNumber: Int, overtimeSeconds: Long) = Unit
         override fun updateTimer(chainName: String, actionName: String, elapsedSeconds: Long, totalSeconds: Long, overtime: Boolean) = Unit
         override fun clearTimer() = Unit
+    }
+
+    private class FakeSpeech : ActionSpeech {
+        override fun generate(text: String, onReady: (String?) -> Unit) = onReady(null)
+        override fun play(text: String, speechKey: String) = Unit
+        override fun keyFor(text: String) = text
+        override fun delete(speechKey: String) = Unit
+        override fun release() = Unit
     }
 }

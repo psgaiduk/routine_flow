@@ -35,6 +35,7 @@ import com.routineflow.app.presentation.screens.ChainExecutionScreen
 import com.routineflow.app.presentation.screens.StatsScreen
 import com.routineflow.app.presentation.screens.RunScreen
 import com.routineflow.app.presentation.screens.RunningScreen
+import com.routineflow.app.notifications.ActionSpeech
 import dagger.hilt.android.AndroidEntryPoint
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
@@ -42,6 +43,7 @@ import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
+    @javax.inject.Inject lateinit var actionSpeech: ActionSpeech
     private lateinit var contentHost: FrameLayout
     private val viewModel: MainViewModel by viewModels()
     private val exportSettingsLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
@@ -87,9 +89,12 @@ class MainActivity : AppCompatActivity() {
     }
     private val recurrenceDisplayFormatter by lazy { RecurrenceDisplayFormatter(this) }
     private val actionEditorDialog by lazy {
-        ActionEditorDialog(this, navy, inputSurface, border, ::confirmDeleteAction) { chain, existing, name, recurrence, duration ->
-            if (existing == null) viewModel.addAction(chain.id, name, recurrence, duration)
-            else viewModel.editAction(chain.id, existing.id, name, recurrence, duration)
+        ActionEditorDialog(this, navy, inputSurface, border, actionSpeech, ::confirmDeleteAction) { chain, existing, name, recurrence, duration, speechKey ->
+            if (existing?.speechKey != null && existing.speechKey != speechKey) {
+                actionSpeech.delete(existing.speechKey)
+            }
+            if (existing == null) viewModel.addAction(chain.id, name, recurrence, duration, speechKey)
+            else viewModel.editAction(chain.id, existing.id, name, recurrence, duration, speechKey)
         }
     }
     private val chainDialogFactory by lazy { ChainDialogFactory(this, navy, secondaryText, inputSurface, border, viewModel::addChain, viewModel::renameChain) }

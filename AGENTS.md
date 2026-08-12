@@ -183,6 +183,8 @@ PATH="/Applications/Android Studio.app/Contents/jbr/Contents/Home/bin:$PATH" \
 тег: краткий текст
 ```
 
+Сообщение коммита должно быть написано на английском языке.
+
 Допустимые теги: `feat`, `fix`, `docs`, `refactoring`.
 
 ## Рабочий процесс

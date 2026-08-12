@@ -13,7 +13,7 @@ class RoutineFlowJsonCodecTest {
     @Test
     fun roundTripPreservesOrderAndFields() {
         val source = listOf(
-            Chain(10L, "Morning", listOf(Action(11L, "Water", RecurrenceRuleCodec.parse("INTERVAL:1:WEEKS:WEEKDAYS:Пн,Ср"), 75, "2026-08-08", "DONE", 92L))),
+            Chain(10L, "Morning", listOf(Action(11L, "Water", RecurrenceRuleCodec.parse("INTERVAL:1:WEEKS:WEEKDAYS:Пн,Ср"), 75, "2026-08-08", "DONE", 92L, "speech-key"))),
             Chain(20L, "Evening")
         )
 
@@ -32,7 +32,7 @@ class RoutineFlowJsonCodecTest {
     @Test
     fun emptyListIsEncodedAsVersionedDocument() {
         val encoded = codec.encode(emptyList())
-        assertTrue(encoded.contains("\"version\":3"))
+        assertTrue(encoded.contains("\"version\":4"))
         assertTrue(encoded.contains("\"chains\":[]"))
     }
 

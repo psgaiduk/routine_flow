@@ -42,6 +42,10 @@
     <string name="drag_hint">Drag the card to the desired position</string>
     <string name="reorder_chains">Reorder chains</string>
     <string name="action_name">Action name</string>
+    <string name="action_add_sound">Add action voice</string>
+    <string name="action_sound_error">Could not create voice audio</string>
+    <string name="action_sound_generating">Creating voice audio…</string>
+    <string name="action_sound_ready">Voice audio is ready</string>
     <string name="hours">Hours</string>
     <string name="minutes">Minutes</string>
     <string name="seconds">Seconds</string>

@@ -9,6 +9,7 @@ import com.routineflow.app.domain.moveItem
 import com.routineflow.app.domain.RecurrenceRuleCodec
 import com.routineflow.app.domain.RoutineDay
 import com.routineflow.app.notifications.RoutineNotifier
+import com.routineflow.app.notifications.ActionSpeech
 import com.routineflow.app.model.Action
 import com.routineflow.app.model.AppState
 import com.routineflow.app.model.Chain
@@ -29,7 +30,8 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     private val repository: ChainRepository,
     private val getTodayActions: GetTodayActionsUseCase,
-    private val overtimeNotifier: RoutineNotifier
+    private val overtimeNotifier: RoutineNotifier,
+    private val actionSpeech: ActionSpeech
 ) : ViewModel() {
     private data class CompletedStep(val action: Action, val elapsedSeconds: Long)
 
@@ -69,12 +71,12 @@ class MainViewModel @Inject constructor(
 
     fun renameChain(chainId: Long, name: String) = update { chains -> chains.map { if (it.id == chainId) it.copy(name = name) else it } }
 
-    fun addAction(chainId: Long, title: String, recurrence: String, durationSeconds: Int) = update { chains ->
-        chains.map { if (it.id == chainId) it.copy(actions = it.actions + Action(System.currentTimeMillis(), title, RecurrenceRuleCodec.parse(recurrence), durationSeconds)) else it }
+    fun addAction(chainId: Long, title: String, recurrence: String, durationSeconds: Int, speechKey: String? = null) = update { chains ->
+        chains.map { if (it.id == chainId) it.copy(actions = it.actions + Action(System.currentTimeMillis(), title, RecurrenceRuleCodec.parse(recurrence), durationSeconds, speechKey = speechKey)) else it }
     }
 
-    fun editAction(chainId: Long, actionId: Long, title: String, recurrence: String, durationSeconds: Int) = update { chains ->
-        chains.map { chain -> if (chain.id == chainId) chain.copy(actions = chain.actions.map { action -> if (action.id == actionId) action.copy(title = title, recurrence = RecurrenceRuleCodec.parse(recurrence), durationSeconds = durationSeconds) else action }) else chain }
+    fun editAction(chainId: Long, actionId: Long, title: String, recurrence: String, durationSeconds: Int, speechKey: String? = null) = update { chains ->
+        chains.map { chain -> if (chain.id == chainId) chain.copy(actions = chain.actions.map { action -> if (action.id == actionId) action.copy(title = title, recurrence = RecurrenceRuleCodec.parse(recurrence), durationSeconds = durationSeconds, speechKey = speechKey) else action }) else chain }
     }
 
     fun toggleAction(chainId: Long, actionId: Long, checked: Boolean) = update { chains ->
@@ -135,6 +137,7 @@ class MainViewModel @Inject constructor(
                 var reminderNumber = 0
                 var reminderInterval = OvertimeReminderSchedule.firstReminderDelaySeconds(action.durationSeconds.toLong())
                 var nextReminderAt = action.durationSeconds.coerceAtLeast(1).toLong() + reminderInterval
+                action.speechKey?.let { actionSpeech.play(action.title, it) }
                 while (true) {
                     while (running.value?.paused == true) {
                         if (postponeRequested) break
