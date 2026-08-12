@@ -42,6 +42,7 @@ import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
+    private lateinit var contentHost: FrameLayout
     private val viewModel: MainViewModel by viewModels()
     private val exportSettingsLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         if (uri != null) viewModel.exportSettings { json ->
@@ -104,6 +105,17 @@ class MainActivity : AppCompatActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = !isDarkTheme
         WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightNavigationBars = !isDarkTheme
+        contentHost = FrameLayout(this).apply {
+            tag = "stable_content_host"
+            setBackgroundColor(pageBackground)
+            ViewCompat.setOnApplyWindowInsetsListener(this) { view, insets ->
+                val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+                view.setPadding(0, bars.top, 0, bars.bottom)
+                insets
+            }
+        }
+        setContentView(contentHost)
+        ViewCompat.requestApplyInsets(contentHost)
         if (android.os.Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1001)
         }
@@ -141,14 +153,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun base(title: String, showTitle: Boolean = true): LinearLayout = LinearLayout(this).apply {
-        orientation = LinearLayout.VERTICAL; val baseTop = 28; val baseBottom = 24; setPadding(24, baseTop, 24, baseBottom); setBackgroundColor(pageBackground)
-        ViewCompat.setOnApplyWindowInsetsListener(this) { view, insets ->
-            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.setPadding(24, baseTop + bars.top, 24, baseBottom + bars.bottom)
-            insets
-        }
-        post { ViewCompat.requestApplyInsets(this) }
+        orientation = LinearLayout.VERTICAL; setPadding(24, 28, 24, 24); setBackgroundColor(pageBackground)
         if (showTitle) addView(TextView(this@MainActivity).apply { text = title; textSize = 30f; setTypeface(typeface, android.graphics.Typeface.BOLD); setTextColor(navy); setPadding(0, 0, 0, 20) })
+    }
+
+    private fun display(root: View) {
+        contentHost.removeAllViews()
+        contentHost.addView(root, FrameLayout.LayoutParams(-1, -1))
     }
 
     private fun secondaryButton(text: String, onClick: () -> Unit) = MaterialButton(this).apply {
@@ -172,7 +183,7 @@ class MainActivity : AppCompatActivity() {
         val root = base(getString(R.string.run_title))
         root.addView(ScreenLayout.scrollable(this, runScreen.build(state)), ScreenLayout.fillRemaining())
         addBottomNav(root, AppTab.RUN)
-        setContentView(root)
+        display(root)
     }
 
     private fun showChainExecution(state: AppState, chain: Chain) {
@@ -180,7 +191,7 @@ class MainActivity : AppCompatActivity() {
         root.addView(chainExecutionScreen.build(state, chain), ScreenLayout.fillRemaining())
         executionScreenRoot = root
         executionScreenChainId = chain.id
-        setContentView(root)
+        display(root)
     }
 
     private fun showChainRunning(state: AppState, chain: Chain) {
@@ -189,7 +200,7 @@ class MainActivity : AppCompatActivity() {
         if (activeRunRoot?.isAttachedToWindow == true && activeRunChainId == chain.id && activeRunActionId == action.id) { updateRunningUi(current); return }
         val result = runningScreen.build(chain, current, viewModel.canRewindCurrent())
         activeRunRoot = result.root; activeRunChainId = chain.id; activeRunActionId = action.id; activeTimerText = result.timer; activeProgress = result.progress; activePauseButton = result.pause
-        setContentView(result.root)
+        display(result.root)
     }
 
     private fun updateRunningUi(current: com.routineflow.app.model.RunningAction) {
@@ -231,7 +242,7 @@ class MainActivity : AppCompatActivity() {
         val root = base("", showTitle = false)
         root.addView(ScreenLayout.scrollable(this, chainsScreen.build(state.chains)), ScreenLayout.fillRemaining())
         addBottomNav(root, AppTab.CHAINS)
-        setContentView(root)
+        display(root)
     }
 
     private fun showChainSettingsMenu(anchor: View) {
@@ -269,7 +280,7 @@ class MainActivity : AppCompatActivity() {
         val root = base(getString(R.string.tab_stats))
         root.addView(ScreenLayout.scrollable(this, statsScreen.build()), ScreenLayout.fillRemaining())
         addBottomNav(root, AppTab.STATS)
-        setContentView(root)
+        display(root)
     }
 
     private fun bottomNav(active: AppTab): LinearLayout = LinearLayout(this).apply {
@@ -300,7 +311,7 @@ class MainActivity : AppCompatActivity() {
     private fun showChain(state: AppState, chain: Chain) {
         val root = base("", showTitle = false)
         root.addView(chainEditorScreen.build(state, chain), ScreenLayout.fillRemaining())
-        setContentView(root)
+        display(root)
     }
 
     private fun beginActionDrag(source: View, action: Action): Boolean {
