@@ -138,6 +138,31 @@ class MainViewModelTest {
         }
     }
 
+    @Test
+    fun autoAdvanceMovesToNextStepWhenPlannedDurationEnds() = runTest(dispatcher) {
+        repository.seed(listOf(
+            Chain(1, "Routine", listOf(
+                Action(11, "First", RecurrenceRule.Daily, durationSeconds = 1),
+                Action(12, "Second", RecurrenceRule.Daily, durationSeconds = 30)
+            ).map { it.copy(autoAdvance = it.id == 11L) })
+        ))
+
+        try {
+            backgroundScope.launch { viewModel.state.collect {} }
+            runCurrent()
+            viewModel.startChain(1)
+            runCurrent()
+            advanceTimeBy(2_000)
+            runCurrent()
+
+            assertEquals("DONE", repository.chains.value.single().actions.first().executionStatus)
+            assertEquals(12L, viewModel.state.value.running?.actionId)
+        } finally {
+            viewModel.stopAction()
+            runCurrent()
+        }
+    }
+
     private class FakeRepository : ChainRepository {
         private val state = MutableStateFlow<List<Chain>>(emptyList())
         override val chains: StateFlow<List<Chain>> = state

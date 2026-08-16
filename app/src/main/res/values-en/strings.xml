@@ -14,6 +14,7 @@
     <string name="edit_chain">Edit chain</string>
     <string name="chain_name_hint">For example: Morning routine</string>
     <string name="chain_name_label">Chain name</string>
+    <string name="action_auto_advance">Auto-advance to next step</string>
     <string name="chain_empty">There are no actions in this chain yet</string>
     <string name="create">Create</string>
     <string name="add_action">Add action</string>

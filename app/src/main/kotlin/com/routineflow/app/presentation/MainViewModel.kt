@@ -71,12 +71,12 @@ class MainViewModel @Inject constructor(
 
     fun renameChain(chainId: Long, name: String) = update { chains -> chains.map { if (it.id == chainId) it.copy(name = name) else it } }
 
-    fun addAction(chainId: Long, title: String, recurrence: String, durationSeconds: Int, speechKey: String? = null) = update { chains ->
-        chains.map { if (it.id == chainId) it.copy(actions = it.actions + Action(System.currentTimeMillis(), title, RecurrenceRuleCodec.parse(recurrence), durationSeconds, speechKey = speechKey)) else it }
+    fun addAction(chainId: Long, title: String, recurrence: String, durationSeconds: Int, speechKey: String? = null, autoAdvance: Boolean = false) = update { chains ->
+        chains.map { if (it.id == chainId) it.copy(actions = it.actions + Action(System.currentTimeMillis(), title, RecurrenceRuleCodec.parse(recurrence), durationSeconds, speechKey = speechKey, autoAdvance = autoAdvance)) else it }
     }
 
-    fun editAction(chainId: Long, actionId: Long, title: String, recurrence: String, durationSeconds: Int, speechKey: String? = null) = update { chains ->
-        chains.map { chain -> if (chain.id == chainId) chain.copy(actions = chain.actions.map { action -> if (action.id == actionId) action.copy(title = title, recurrence = RecurrenceRuleCodec.parse(recurrence), durationSeconds = durationSeconds, speechKey = speechKey) else action }) else chain }
+    fun editAction(chainId: Long, actionId: Long, title: String, recurrence: String, durationSeconds: Int, speechKey: String? = null, autoAdvance: Boolean = false) = update { chains ->
+        chains.map { chain -> if (chain.id == chainId) chain.copy(actions = chain.actions.map { action -> if (action.id == actionId) action.copy(title = title, recurrence = RecurrenceRuleCodec.parse(recurrence), durationSeconds = durationSeconds, speechKey = speechKey, autoAdvance = autoAdvance) else action }) else chain }
     }
 
     fun toggleAction(chainId: Long, actionId: Long, checked: Boolean) = update { chains ->
@@ -158,7 +158,7 @@ class MainViewModel @Inject constructor(
                             continue
                         }
                     }
-                    if (completionRequested) {
+                    if (completionRequested || (action.autoAdvance && elapsed >= action.durationSeconds.coerceAtLeast(1))) {
                         completionRequested = false
                         elapsed = requestedCompletionElapsed ?: elapsed
                         requestedCompletionElapsed = null

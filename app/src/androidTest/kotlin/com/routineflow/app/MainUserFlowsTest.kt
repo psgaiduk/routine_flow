@@ -9,6 +9,7 @@ import androidx.test.espresso.action.ViewActions.replaceText
 import androidx.test.espresso.assertion.ViewAssertions.doesNotExist
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
+import androidx.test.espresso.matcher.ViewMatchers.isChecked
 import androidx.test.espresso.matcher.ViewMatchers.withTagValue
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.rules.ActivityScenarioRule
@@ -49,6 +50,20 @@ class MainUserFlowsTest {
         onView(withText(R.string.save)).perform(click())
 
         onView(withText(action)).check(matches(isDisplayed()))
+    }
+
+    @Test
+    fun actionAutoAdvanceSettingCanBeEnabled() {
+        val chain = "UI auto advance chain $suffix"
+        val action = "UI auto advance action $suffix"
+        createChain(chain)
+        addAction(chain, action)
+        onView(withText(action)).perform(click())
+
+        onView(withTagValue(`is`("action_auto_advance_checkbox")))
+            .check(matches(isDisplayed()))
+            .perform(click())
+            .check(matches(isChecked()))
     }
 
     @Test

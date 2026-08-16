@@ -14,6 +14,7 @@
     <string name="edit_chain">Изменить цепочку</string>
     <string name="chain_name_hint">Например: Утренняя рутина</string>
     <string name="chain_name_label">Название цепочки</string>
+    <string name="action_auto_advance">Автопереход к следующему этапу</string>
     <string name="chain_empty">В цепочке пока нет действий</string>
     <string name="create">Создать</string>
     <string name="add_action">Добавить действие</string>

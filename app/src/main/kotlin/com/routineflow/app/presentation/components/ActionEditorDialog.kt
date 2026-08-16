@@ -19,7 +19,7 @@ class ActionEditorDialog(
     private val borderColor: Int,
     private val actionSpeech: ActionSpeech,
     private val showDeleteError: (Chain, Action) -> Unit,
-    private val save: (Chain, Action?, String, String, Int, String?) -> Unit
+    private val save: (Chain, Action?, String, String, Int, String?, Boolean) -> Unit
 ) {
     fun show(chain: Chain, existing: Action?) {
         val box = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL; setPadding(24, 20, 24, 8) }
@@ -40,6 +40,13 @@ class ActionEditorDialog(
             setTextColor(0xff64748b.toInt())
         }
         box.addView(soundStatus, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = 8 })
+
+        val autoAdvanceCheck = CheckBox(context).apply {
+            tag = "action_auto_advance_checkbox"
+            text = context.getString(R.string.action_auto_advance)
+            isChecked = existing?.autoAdvance == true
+        }
+        box.addView(autoAdvanceCheck, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = 8 })
 
         val duration = existing?.durationSeconds ?: 60
         val hours = CompactPicker(context, 0, 2, (duration / 3600).coerceAtMost(2), true, textColor)
@@ -69,7 +76,7 @@ class ActionEditorDialog(
                 return@setOnClickListener
             }
             val totalSeconds = hours.value * 3600 + minutes.value * 60 + seconds.value
-            title.text.toString().trim().takeIf(String::isNotEmpty)?.let { save(chain, existing, it, selected, totalSeconds.coerceAtLeast(1), speechKey) }
+            title.text.toString().trim().takeIf(String::isNotEmpty)?.let { save(chain, existing, it, selected, totalSeconds.coerceAtLeast(1), speechKey, autoAdvanceCheck.isChecked) }
             dialog.dismiss()
         }
         val saveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)

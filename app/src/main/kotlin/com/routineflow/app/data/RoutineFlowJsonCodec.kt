@@ -30,6 +30,7 @@ class RoutineFlowJsonCodec {
                     jsonAction.optString("executionStatus").takeUnless { it.isBlank() || it == "null" },
                     jsonAction.optLong("actualDurationSeconds").takeIf { jsonAction.has("actualDurationSeconds") && !jsonAction.isNull("actualDurationSeconds") }
                     ,jsonAction.optString("speechKey").takeUnless { it.isBlank() || it == "null" }
+                    ,jsonAction.optBoolean("autoAdvance", false)
                 )
             }
             Chain(jsonChain.getLong("id"), jsonChain.getString("name"), actions)
@@ -54,6 +55,7 @@ class RoutineFlowJsonCodec {
                             put("executionStatus", action.executionStatus ?: JSONObject.NULL)
                             put("actualDurationSeconds", action.actualDurationSeconds ?: JSONObject.NULL)
                             put("speechKey", action.speechKey ?: JSONObject.NULL)
+                            put("autoAdvance", action.autoAdvance)
                         })
                     }
                 })
@@ -62,5 +64,5 @@ class RoutineFlowJsonCodec {
         return root.toString()
     }
 
-    private companion object { const val JSON_VERSION = 4 }
+    private companion object { const val JSON_VERSION = 5 }
 }
