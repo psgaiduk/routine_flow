@@ -4,8 +4,10 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.media.AudioAttributes
+import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.RingtoneManager
+import android.media.ToneGenerator
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -16,6 +18,17 @@ import javax.inject.Singleton
 
 @Singleton
 class OvertimeNotifier @Inject constructor(@ApplicationContext private val context: Context) : RoutineNotifier {
+    override fun playCountdownBeep() {
+        runCatching {
+            ToneGenerator(AudioManager.STREAM_ALARM, 80).also { tone ->
+                tone.startTone(ToneGenerator.TONE_PROP_BEEP, 140)
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({ tone.release() }, 180L)
+            }
+        }
+    }
+
+    override fun playCompletionAlarm() = playAlarmSignal()
+
     private val alertSound by lazy {
         RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
             ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)

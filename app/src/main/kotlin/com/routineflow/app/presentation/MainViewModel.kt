@@ -159,12 +159,14 @@ class MainViewModel @Inject constructor(
                         }
                     }
                     if (completionRequested || (action.autoAdvance && elapsed >= action.durationSeconds.coerceAtLeast(1))) {
+                        if (action.autoAdvance && elapsed >= action.durationSeconds.coerceAtLeast(1)) overtimeNotifier.playCompletionAlarm()
                         completionRequested = false
                         elapsed = requestedCompletionElapsed ?: elapsed
                         requestedCompletionElapsed = null
                         break
                     }
                     val total = action.durationSeconds.coerceAtLeast(1).toLong()
+                    if (action.autoAdvance && total - elapsed in 1L..3L) overtimeNotifier.playCountdownBeep()
                     val remaining = (total - elapsed).coerceAtLeast(0L)
                     running.value = RunningAction(chainId, action.id, total, remaining, estimatedEndMillis, elapsed, elapsed >= total)
                     overtimeNotifier.updateTimer(chain.name, action.title, elapsed, total, elapsed >= total)

@@ -30,13 +30,15 @@ import org.junit.Test
 class MainViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private lateinit var repository: FakeRepository
+    private lateinit var notifier: FakeNotifier
     private lateinit var viewModel: MainViewModel
 
     @Before
     fun setUp() {
         Dispatchers.setMain(dispatcher)
         repository = FakeRepository()
-        viewModel = MainViewModel(repository, GetTodayActionsUseCase(), FakeNotifier(), FakeSpeech())
+        notifier = FakeNotifier()
+        viewModel = MainViewModel(repository, GetTodayActionsUseCase(), notifier, FakeSpeech())
     }
 
     @After
@@ -142,7 +144,7 @@ class MainViewModelTest {
     fun autoAdvanceMovesToNextStepWhenPlannedDurationEnds() = runTest(dispatcher) {
         repository.seed(listOf(
             Chain(1, "Routine", listOf(
-                Action(11, "First", RecurrenceRule.Daily, durationSeconds = 1),
+                Action(11, "First", RecurrenceRule.Daily, durationSeconds = 3),
                 Action(12, "Second", RecurrenceRule.Daily, durationSeconds = 30)
             ).map { it.copy(autoAdvance = it.id == 11L) })
         ))
@@ -152,11 +154,13 @@ class MainViewModelTest {
             runCurrent()
             viewModel.startChain(1)
             runCurrent()
-            advanceTimeBy(2_000)
+            advanceTimeBy(4_000)
             runCurrent()
 
             assertEquals("DONE", repository.chains.value.single().actions.first().executionStatus)
             assertEquals(12L, viewModel.state.value.running?.actionId)
+            assertEquals(3, notifier.count)
+            assertEquals(1, notifier.completionAlarmCount)
         } finally {
             viewModel.stopAction()
             runCurrent()
@@ -173,6 +177,11 @@ class MainViewModelTest {
     }
 
     private class FakeNotifier : RoutineNotifier {
+        private val countdownBeeps = mutableListOf<Unit>()
+        var completionAlarmCount = 0
+        val count get() = countdownBeeps.size
+        override fun playCountdownBeep() { countdownBeeps += Unit }
+        override fun playCompletionAlarm() { completionAlarmCount += 1 }
         override fun notifyOvertime(chainName: String, actionName: String, reminderNumber: Int, overtimeSeconds: Long) = Unit
         override fun updateTimer(chainName: String, actionName: String, elapsedSeconds: Long, totalSeconds: Long, overtime: Boolean) = Unit
         override fun clearTimer() = Unit
