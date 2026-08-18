@@ -77,8 +77,6 @@ class ActionEditorDialog(
         }
         fun fieldLabel(text: String) = TextView(context).apply { this.text = text; textSize = 14f; setTextColor(textColor); setPadding(0, 8, 0, 2) }
         val startDate = dateField("action_start_date_input", context.getString(R.string.action_date_hint), existing?.startDate ?: RoutineDay.currentDateKey())
-        box.addView(fieldLabel(context.getString(R.string.action_start_date)))
-        box.addView(startDate, LinearLayout.LayoutParams(-1, 88))
 
         val duration = existing?.durationSeconds ?: 60
         val hours = CompactPicker(context, 0, 2, (duration / 3600).coerceAtMost(2), true, textColor)
@@ -98,6 +96,30 @@ class ActionEditorDialog(
         box.addView(labels(), LinearLayout.LayoutParams(-1, 42).apply { bottomMargin = 18 })
         var selected = existing?.recurrence?.let(RecurrenceRuleCodec::encode) ?: "NONE"
         box.addView(RecurrenceEditor(context, textColor, 0xff4f46e5.toInt(), inputSurfaceColor, borderColor).build(selected) { selected = it })
+        val advancedContent = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            visibility = View.GONE
+            tag = "action_advanced_content"
+            addView(fieldLabel(context.getString(R.string.action_start_date)))
+            addView(startDate, LinearLayout.LayoutParams(-1, 88))
+        }
+        val advancedHeader = TextView(context).apply {
+            tag = "action_advanced_header"
+            text = context.getString(R.string.action_advanced_collapsed)
+            textSize = 17f
+            setTextColor(textColor)
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setPadding(0, 20, 0, 12)
+            isClickable = true
+            isFocusable = true
+            setOnClickListener {
+                val expanded = advancedContent.visibility != View.VISIBLE
+                advancedContent.visibility = if (expanded) View.VISIBLE else View.GONE
+                text = context.getString(if (expanded) R.string.action_advanced_expanded else R.string.action_advanced_collapsed)
+            }
+        }
+        box.addView(advancedHeader)
+        box.addView(advancedContent)
 
         val dialog = MaterialAlertDialogBuilder(context).setView(ScrollView(context).apply { addView(box) }).setNegativeButton(R.string.cancel, null)
             .apply { if (existing != null) setNeutralButton(R.string.delete) { _, _ -> showDeleteError(chain, existing) } }

@@ -17,6 +17,8 @@
     <string name="action_auto_advance">Автопереход к следующему этапу</string>
     <string name="action_start_date">Дата начала</string>
     <string name="action_date_hint">ГГГГ-ММ-ДД</string>
+    <string name="action_advanced_collapsed">Дополнительно ▾</string>
+    <string name="action_advanced_expanded">Дополнительно ▴</string>
     <string name="chain_empty">В цепочке пока нет действий</string>
     <string name="create">Создать</string>
     <string name="add_action">Добавить действие</string>
