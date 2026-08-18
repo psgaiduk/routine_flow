@@ -10,7 +10,8 @@ data class Action(
     val actualDurationSeconds: Long? = null,
     val speechKey: String? = null,
     val autoAdvance: Boolean = false,
-    val startDate: String? = null
+    val startDate: String? = null,
+    val endDate: String? = null
 )
 data class Chain(val id: Long, val name: String, val actions: List<Action> = emptyList())
 data class RunningAction(val chainId: Long, val actionId: Long, val totalSeconds: Long, val remainingSeconds: Long, val estimatedEndMillis: Long, val elapsedSeconds: Long = 0L, val overtime: Boolean = false, val paused: Boolean = false)

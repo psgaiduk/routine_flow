@@ -23,6 +23,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import javax.inject.Inject
 
@@ -48,6 +49,10 @@ class MainViewModel @Inject constructor(
     val state: StateFlow<AppState> = combine(repository.chains, running) { chains, current -> AppState(chains, current) }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppState())
     private val dateKey get() = RoutineDay.currentDateKey()
 
+    init {
+        viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) { removeExpiredActions(repository.chains.value) }
+    }
+
     fun addChain(name: String) = update { it + Chain(System.currentTimeMillis(), name) }
 
     fun exportSettings(onReady: (String) -> Unit) = viewModelScope.launch {
@@ -55,7 +60,9 @@ class MainViewModel @Inject constructor(
     }
 
     fun importSettings(json: String, onResult: (Boolean) -> Unit) = viewModelScope.launch {
-        onResult(repository.importJson(json))
+        val success = repository.importJson(json)
+        if (success) removeExpiredActions(repository.chains.value)
+        onResult(success)
     }
 
     fun moveChain(fromChainId: Long, toChainId: Long) = update { chains ->
@@ -71,12 +78,12 @@ class MainViewModel @Inject constructor(
 
     fun renameChain(chainId: Long, name: String) = update { chains -> chains.map { if (it.id == chainId) it.copy(name = name) else it } }
 
-    fun addAction(chainId: Long, title: String, recurrence: String, durationSeconds: Int, speechKey: String? = null, autoAdvance: Boolean = false, startDate: String? = null) = update { chains ->
-        chains.map { if (it.id == chainId) it.copy(actions = it.actions + Action(System.currentTimeMillis(), title, RecurrenceRuleCodec.parse(recurrence), durationSeconds, speechKey = speechKey, autoAdvance = autoAdvance, startDate = startDate ?: dateKey)) else it }
+    fun addAction(chainId: Long, title: String, recurrence: String, durationSeconds: Int, speechKey: String? = null, autoAdvance: Boolean = false, startDate: String? = null, endDate: String? = null) = update { chains ->
+        chains.map { if (it.id == chainId) it.copy(actions = it.actions + Action(System.currentTimeMillis(), title, RecurrenceRuleCodec.parse(recurrence), durationSeconds, speechKey = speechKey, autoAdvance = autoAdvance, startDate = startDate ?: dateKey, endDate = endDate)) else it }
     }
 
-    fun editAction(chainId: Long, actionId: Long, title: String, recurrence: String, durationSeconds: Int, speechKey: String? = null, autoAdvance: Boolean = false, startDate: String? = null) = update { chains ->
-        chains.map { chain -> if (chain.id == chainId) chain.copy(actions = chain.actions.map { action -> if (action.id == actionId) action.copy(title = title, recurrence = RecurrenceRuleCodec.parse(recurrence), durationSeconds = durationSeconds, speechKey = speechKey, autoAdvance = autoAdvance, startDate = startDate ?: dateKey) else action }) else chain }
+    fun editAction(chainId: Long, actionId: Long, title: String, recurrence: String, durationSeconds: Int, speechKey: String? = null, autoAdvance: Boolean = false, startDate: String? = null, endDate: String? = null) = update { chains ->
+        chains.map { chain -> if (chain.id == chainId) chain.copy(actions = chain.actions.map { action -> if (action.id == actionId) action.copy(title = title, recurrence = RecurrenceRuleCodec.parse(recurrence), durationSeconds = durationSeconds, speechKey = speechKey, autoAdvance = autoAdvance, startDate = startDate ?: dateKey, endDate = endDate) else action }) else chain }
     }
 
     fun toggleAction(chainId: Long, actionId: Long, checked: Boolean) = update { chains ->
@@ -250,6 +257,15 @@ class MainViewModel @Inject constructor(
     }
 
     private fun update(transform: (List<Chain>) -> List<Chain>) {
-        viewModelScope.launch { repository.replace(transform(repository.chains.value)) }
+        viewModelScope.launch { repository.replace(filterExpiredActions(transform(repository.chains.value))) }
+    }
+
+    private suspend fun removeExpiredActions(chains: List<Chain>) {
+        val filtered = filterExpiredActions(chains)
+        if (filtered != chains) repository.replace(filtered)
+    }
+
+    private fun filterExpiredActions(chains: List<Chain>): List<Chain> = chains.map { chain ->
+        chain.copy(actions = chain.actions.filter { action -> action.endDate == null || dateKey <= action.endDate })
     }
 }

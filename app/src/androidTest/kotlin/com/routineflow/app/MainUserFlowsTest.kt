@@ -66,6 +66,7 @@ class MainUserFlowsTest {
             .check(matches(isChecked()))
         onView(withTagValue(`is`("action_advanced_header"))).perform(click())
         onView(withTagValue(`is`("action_start_date_input"))).check(matches(isDisplayed()))
+        onView(withTagValue(`is`("action_end_date_input"))).check(matches(isDisplayed()))
     }
 
     @Test

@@ -20,6 +20,14 @@ class ActionScheduleTest {
     }
 
     @Test
+    fun endDateStopsActionAfterTheConfiguredDay() {
+        val action = Action(1L, "Step", RecurrenceRule.Daily, startDate = "2026-08-10", endDate = "2026-08-12")
+
+        assertTrue(useCase.isDue(action, day(2026, Calendar.AUGUST, 12)))
+        assertFalse(useCase.isDue(action, day(2026, Calendar.AUGUST, 13)))
+    }
+
+    @Test
     fun dayIntervalIsCalculatedFromStartDate() {
         val action = Action(1L, "Step", RecurrenceRule.Interval(3, RecurrenceUnit.DAYS), startDate = "2026-08-10")
 

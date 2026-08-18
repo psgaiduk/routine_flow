@@ -24,7 +24,7 @@ class ActionEditorDialog(
     private val borderColor: Int,
     private val actionSpeech: ActionSpeech,
     private val showDeleteError: (Chain, Action) -> Unit,
-    private val save: (Chain, Action?, String, String, Int, String?, Boolean, String?) -> Unit
+    private val save: (Chain, Action?, String, String, Int, String?, Boolean, String?, String?) -> Unit
 ) {
     fun show(chain: Chain, existing: Action?) {
         val box = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL; setPadding(24, 20, 24, 8) }
@@ -59,6 +59,9 @@ class ActionEditorDialog(
                 hint = hintText
                 setText(initial ?: "")
                 isSingleLine = true
+                textSize = 18f
+                setTextColor(textColor)
+                setHintTextColor(0xff94a3b8.toInt())
                 inputType = InputType.TYPE_CLASS_DATETIME
                 minHeight = 80
                 gravity = Gravity.CENTER_VERTICAL
@@ -77,6 +80,7 @@ class ActionEditorDialog(
         }
         fun fieldLabel(text: String) = TextView(context).apply { this.text = text; textSize = 14f; setTextColor(textColor); setPadding(0, 8, 0, 2) }
         val startDate = dateField("action_start_date_input", context.getString(R.string.action_date_hint), existing?.startDate ?: RoutineDay.currentDateKey())
+        val endDate = dateField("action_end_date_input", context.getString(R.string.action_date_hint), existing?.endDate)
 
         val duration = existing?.durationSeconds ?: 60
         val hours = CompactPicker(context, 0, 2, (duration / 3600).coerceAtMost(2), true, textColor)
@@ -100,8 +104,19 @@ class ActionEditorDialog(
             orientation = LinearLayout.VERTICAL
             visibility = View.GONE
             tag = "action_advanced_content"
-            addView(fieldLabel(context.getString(R.string.action_start_date)))
-            addView(startDate, LinearLayout.LayoutParams(-1, 88))
+            addView(LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                addView(LinearLayout(context).apply {
+                    orientation = LinearLayout.VERTICAL
+                    addView(fieldLabel(context.getString(R.string.action_start_date)))
+                    addView(startDate, LinearLayout.LayoutParams(-1, 88))
+                }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = 8 })
+                addView(LinearLayout(context).apply {
+                    orientation = LinearLayout.VERTICAL
+                    addView(fieldLabel(context.getString(R.string.action_end_date)))
+                    addView(endDate, LinearLayout.LayoutParams(-1, 88))
+                }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = 8 })
+            }, LinearLayout.LayoutParams(-1, -2))
         }
         val advancedHeader = TextView(context).apply {
             tag = "action_advanced_header"
@@ -130,7 +145,13 @@ class ActionEditorDialog(
                 return@setOnClickListener
             }
             val totalSeconds = hours.value * 3600 + minutes.value * 60 + seconds.value
-            title.text.toString().trim().takeIf(String::isNotEmpty)?.let { save(chain, existing, it, selected, totalSeconds.coerceAtLeast(1), speechKey, autoAdvanceCheck.isChecked, startDate.text.toString().trim().takeIf(String::isNotEmpty)) }
+            val startDateValue = startDate.text.toString().trim().takeIf(String::isNotEmpty)
+            val endDateValue = endDate.text.toString().trim().takeIf(String::isNotEmpty)
+            if (startDateValue != null && endDateValue != null && endDateValue < startDateValue) {
+                Toast.makeText(context, R.string.action_date_range_error, Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            title.text.toString().trim().takeIf(String::isNotEmpty)?.let { save(chain, existing, it, selected, totalSeconds.coerceAtLeast(1), speechKey, autoAdvanceCheck.isChecked, startDateValue, endDateValue) }
             dialog.dismiss()
         }
         val saveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)

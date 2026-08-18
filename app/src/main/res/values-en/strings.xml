@@ -16,7 +16,9 @@
     <string name="chain_name_label">Chain name</string>
     <string name="action_auto_advance">Auto-advance to next step</string>
     <string name="action_start_date">Start date</string>
+    <string name="action_end_date">End date</string>
     <string name="action_date_hint">YYYY-MM-DD</string>
+    <string name="action_date_range_error">End date cannot be before start date</string>
     <string name="action_advanced_collapsed">Advanced ▾</string>
     <string name="action_advanced_expanded">Advanced ▴</string>
     <string name="chain_empty">There are no actions in this chain yet</string>
