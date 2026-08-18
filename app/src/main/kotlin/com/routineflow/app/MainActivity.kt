@@ -89,12 +89,12 @@ class MainActivity : AppCompatActivity() {
     }
     private val recurrenceDisplayFormatter by lazy { RecurrenceDisplayFormatter(this) }
     private val actionEditorDialog by lazy {
-        ActionEditorDialog(this, navy, inputSurface, border, actionSpeech, ::confirmDeleteAction) { chain, existing, name, recurrence, duration, speechKey, autoAdvance ->
+        ActionEditorDialog(this, navy, inputSurface, border, actionSpeech, ::confirmDeleteAction) { chain, existing, name, recurrence, duration, speechKey, autoAdvance, startDate ->
             if (existing?.speechKey != null && existing.speechKey != speechKey) {
                 actionSpeech.delete(existing.speechKey)
             }
-            if (existing == null) viewModel.addAction(chain.id, name, recurrence, duration, speechKey, autoAdvance)
-            else viewModel.editAction(chain.id, existing.id, name, recurrence, duration, speechKey, autoAdvance)
+            if (existing == null) viewModel.addAction(chain.id, name, recurrence, duration, speechKey, autoAdvance, startDate)
+            else viewModel.editAction(chain.id, existing.id, name, recurrence, duration, speechKey, autoAdvance, startDate)
         }
     }
     private val chainDialogFactory by lazy { ChainDialogFactory(this, navy, secondaryText, inputSurface, border, viewModel::addChain, viewModel::renameChain) }

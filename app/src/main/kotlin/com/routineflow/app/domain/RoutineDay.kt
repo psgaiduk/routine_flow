@@ -16,6 +16,7 @@ object RoutineDay {
         }
     }
 
-    fun currentDateKey(): String = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-        .format(currentCalendar().time)
+    fun currentDateKey(): String = dateKey(currentCalendar())
+
+    fun dateKey(calendar: Calendar): String = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(calendar.time)
 }

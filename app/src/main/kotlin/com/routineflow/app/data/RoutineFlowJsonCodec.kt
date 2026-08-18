@@ -3,6 +3,7 @@ package com.routineflow.app.data
 import com.routineflow.app.model.Action
 import com.routineflow.app.model.Chain
 import com.routineflow.app.domain.RecurrenceRuleCodec
+import com.routineflow.app.domain.RoutineDay
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -31,6 +32,7 @@ class RoutineFlowJsonCodec {
                     jsonAction.optLong("actualDurationSeconds").takeIf { jsonAction.has("actualDurationSeconds") && !jsonAction.isNull("actualDurationSeconds") }
                     ,jsonAction.optString("speechKey").takeUnless { it.isBlank() || it == "null" }
                     ,jsonAction.optBoolean("autoAdvance", false)
+                    ,jsonAction.optString("startDate").takeUnless { it.isBlank() || it == "null" } ?: RoutineDay.currentDateKey()
                 )
             }
             Chain(jsonChain.getLong("id"), jsonChain.getString("name"), actions)
@@ -56,6 +58,7 @@ class RoutineFlowJsonCodec {
                             put("actualDurationSeconds", action.actualDurationSeconds ?: JSONObject.NULL)
                             put("speechKey", action.speechKey ?: JSONObject.NULL)
                             put("autoAdvance", action.autoAdvance)
+                            put("startDate", action.startDate ?: JSONObject.NULL)
                         })
                     }
                 })
@@ -64,5 +67,5 @@ class RoutineFlowJsonCodec {
         return root.toString()
     }
 
-    private companion object { const val JSON_VERSION = 5 }
+    private companion object { const val JSON_VERSION = 7 }
 }

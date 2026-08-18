@@ -5,12 +5,17 @@ import android.text.InputType
 import android.view.Gravity
 import android.view.View
 import android.widget.*
+import android.app.DatePickerDialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.routineflow.app.R
 import com.routineflow.app.model.Action
 import com.routineflow.app.model.Chain
 import com.routineflow.app.domain.RecurrenceRuleCodec
 import com.routineflow.app.notifications.ActionSpeech
+import com.routineflow.app.domain.RoutineDay
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
 class ActionEditorDialog(
     private val context: android.content.Context,
@@ -19,7 +24,7 @@ class ActionEditorDialog(
     private val borderColor: Int,
     private val actionSpeech: ActionSpeech,
     private val showDeleteError: (Chain, Action) -> Unit,
-    private val save: (Chain, Action?, String, String, Int, String?, Boolean) -> Unit
+    private val save: (Chain, Action?, String, String, Int, String?, Boolean, String?) -> Unit
 ) {
     fun show(chain: Chain, existing: Action?) {
         val box = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL; setPadding(24, 20, 24, 8) }
@@ -47,6 +52,33 @@ class ActionEditorDialog(
             isChecked = existing?.autoAdvance == true
         }
         box.addView(autoAdvanceCheck, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = 8 })
+
+        fun dateField(tagValue: String, hintText: String, initial: String?): EditText {
+            return EditText(context).apply {
+                tag = tagValue
+                hint = hintText
+                setText(initial ?: "")
+                isSingleLine = true
+                inputType = InputType.TYPE_CLASS_DATETIME
+                minHeight = 80
+                gravity = Gravity.CENTER_VERTICAL
+                includeFontPadding = true
+                setPadding(12, 8, 12, 8)
+                setOnClickListener {
+                    val calendar = Calendar.getInstance()
+                    initial?.takeIf { it.isNotBlank() }?.let {
+                        runCatching { SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(it) }.getOrNull()?.let(calendar::setTime)
+                    }
+                    DatePickerDialog(context, { _, year, month, day ->
+                        setText("%04d-%02d-%02d".format(Locale.US, year, month + 1, day))
+                    }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show()
+                }
+            }
+        }
+        fun fieldLabel(text: String) = TextView(context).apply { this.text = text; textSize = 14f; setTextColor(textColor); setPadding(0, 8, 0, 2) }
+        val startDate = dateField("action_start_date_input", context.getString(R.string.action_date_hint), existing?.startDate ?: RoutineDay.currentDateKey())
+        box.addView(fieldLabel(context.getString(R.string.action_start_date)))
+        box.addView(startDate, LinearLayout.LayoutParams(-1, 88))
 
         val duration = existing?.durationSeconds ?: 60
         val hours = CompactPicker(context, 0, 2, (duration / 3600).coerceAtMost(2), true, textColor)
@@ -76,7 +108,7 @@ class ActionEditorDialog(
                 return@setOnClickListener
             }
             val totalSeconds = hours.value * 3600 + minutes.value * 60 + seconds.value
-            title.text.toString().trim().takeIf(String::isNotEmpty)?.let { save(chain, existing, it, selected, totalSeconds.coerceAtLeast(1), speechKey, autoAdvanceCheck.isChecked) }
+            title.text.toString().trim().takeIf(String::isNotEmpty)?.let { save(chain, existing, it, selected, totalSeconds.coerceAtLeast(1), speechKey, autoAdvanceCheck.isChecked, startDate.text.toString().trim().takeIf(String::isNotEmpty)) }
             dialog.dismiss()
         }
         val saveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
